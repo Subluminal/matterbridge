@@ -88,7 +88,7 @@ func (b *bdiscord) Send(msg config.Message) error {
 		flog.Errorf("Could not find channelID for %v", msg.Channel)
 		return nil
 	}
-	b.c.ChannelMessageSend(channelID, msg.Username+msg.Text)
+	b.c.ChannelMessageSend(channelID, "<**"+msg.Username+"**> "+msg.Text)
 	return nil
 }
 
@@ -110,7 +110,15 @@ func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 	if b.UseChannelID {
 		channelName = "ID:" + m.ChannelID
 	}
-	b.Remote <- config.Message{Username: m.Author.Username, Text: m.ContentWithMentionsReplaced(), Channel: channelName,
+    nick := m.Author.Username
+    ch, err := s.Channel(m.ChannelID)
+    if err == nil {
+        member, err := s.GuildMember(ch.GuildID, m.Author.ID)
+        if err == nil {
+            nick = member.Nick
+        }
+    }
+	b.Remote <- config.Message{Username: nick, Text: m.ContentWithMentionsReplaced(), Channel: channelName,
 		Account: b.Account, Avatar: "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg"}
 }
 

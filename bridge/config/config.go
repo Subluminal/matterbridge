@@ -10,6 +10,7 @@ import (
 
 const (
 	EVENT_JOIN_LEAVE = "join_leave"
+	EVENT_ACTION = "action"
 )
 
 type Message struct {

@@ -2,6 +2,7 @@ package birc
 
 import (
 	"strings"
+    "fmt"
 )
 
 func tableformatter(nicks []string, nicksPerRow int, continued bool) string {
@@ -56,4 +57,14 @@ func IsMarkup(message string) bool {
 		return true
 	}
 	return false
+}
+
+func formatNick(nick string) string {
+    rcolors := []int{19, 20, 22, 24, 25, 26, 27, 28, 29}
+    rcolors = append(rcolors[1:], rcolors[0])
+    sum := 0
+    for _, char := range nick {
+        sum += int(char)
+    }
+    return fmt.Sprintf("\x03%d@%s\x03", rcolors[sum % 9] - 16, nick)
 }

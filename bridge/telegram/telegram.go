@@ -5,6 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"strconv"
+    "html"
 )
 
 type Btelegram struct {
@@ -57,12 +58,14 @@ func (b *Btelegram) Send(msg config.Message) error {
 	if err != nil {
 		return err
 	}
-	m := tgbotapi.NewMessage(chatid, msg.Text)
+	m := tgbotapi.NewMessage(chatid, "&lt;<b>"+msg.Username+"</b>&gt; "+html.EscapeString(msg.Text))
+    m.ParseMode = "html"
 	_, err = b.c.Send(m)
 	return err
 }
 
 func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
+    flog.Debug("Starting telegram handler")
 	for update := range updates {
 		if update.Message == nil {
 			continue

@@ -63,8 +63,7 @@ func (gw *Gateway) Start() error {
 			return err
 		}
 	}
-	//TODO fix mapIgnores
-	//gw.mapIgnores()
+	gw.mapIgnores()
 	go gw.handleReceive()
 	return nil
 }
@@ -154,7 +153,7 @@ func (gw *Gateway) handleMessage(msg config.Message, dest *bridge.Bridge) {
 func (gw *Gateway) ignoreMessage(msg *config.Message) bool {
 	// should we discard messages ?
 	for _, entry := range gw.ignoreNicks[msg.Account] {
-		if msg.Username == entry {
+		if strings.HasPrefix(msg.Username, entry) {
 			return true
 		}
 	}

@@ -123,7 +123,7 @@ func (b *Birc) doSend() {
 	throttle := time.Tick(rate)
 	for msg := range b.Local {
 		<-throttle
-		b.i.Privmsg(msg.Channel, msg.Username+msg.Text)
+		b.i.Privmsg(msg.Channel, "["+formatNick(msg.Username)+"] "+msg.Text)
 	}
 }
 
@@ -202,11 +202,10 @@ func (b *Birc) handlePrivMsg(event *irc.Event) {
 		return
 	}
 	flog.Debugf("handlePrivMsg() %s %s %#v", event.Nick, event.Message(), event)
-	msg := ""
+	msg := event.Message()
 	if event.Code == "CTCP_ACTION" {
-		msg = event.Nick + " "
+		msg = "*"+msg+"*"
 	}
-	msg += event.Message()
 	// strip IRC colors
 	re := regexp.MustCompile(`[[:cntrl:]](\d+,|)\d+`)
 	msg = re.ReplaceAllString(msg, "")
