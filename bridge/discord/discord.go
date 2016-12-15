@@ -1,10 +1,10 @@
 package bdiscord
 
 import (
-	"github.com/42wim/matterbridge/bridge/config"
-	log "github.com/Sirupsen/logrus"
-	"github.com/bwmarrin/discordgo"
-	"strings"
+    "github.com/42wim/matterbridge/bridge/config"
+    log "github.com/Sirupsen/logrus"
+    "github.com/bwmarrin/discordgo"
+    "strings"
     "regexp"
     "fmt"
 )
@@ -21,13 +21,13 @@ type Message struct {
 }
 
 type bdiscord struct {
-	c            *discordgo.Session
-	Config       *config.Protocol
-	Remote       chan config.Message
-	Account      string
-	Channels     []*discordgo.Channel
-	Nick         string
-	UseChannelID bool
+    c            *discordgo.Session
+    Config       *config.Protocol
+    Remote       chan config.Message
+    Account      string
+    Channels     []*discordgo.Channel
+    Nick         string
+    UseChannelID bool
     MessageHist  []Message
 }
 
@@ -37,75 +37,75 @@ var mentionRegex = regexp.MustCompile("@\\w+")
 var emojiRegex = regexp.MustCompile("<(:\\w+:)\\d+>")
 
 func init() {
-	flog = log.WithFields(log.Fields{"module": protocol})
+    flog = log.WithFields(log.Fields{"module": protocol})
 }
 
 func New(cfg config.Protocol, account string, c chan config.Message) *bdiscord {
-	b := &bdiscord{}
-	b.Config = &cfg
-	b.Remote = c
-	b.Account = account
+    b := &bdiscord{}
+    b.Config = &cfg
+    b.Remote = c
+    b.Account = account
     b.MessageHist = make([]Message, 64)
-	return b
+    return b
 }
 
 func (b *bdiscord) Connect() error {
-	var err error
-	flog.Info("Connecting")
-	if !strings.HasPrefix(b.Config.Token, "Bot ") {
-		b.Config.Token = "Bot " + b.Config.Token
-	}
-	b.c, err = discordgo.New(b.Config.Token)
-	if err != nil {
-		flog.Debugf("%#v", err)
-		return err
-	}
-	flog.Info("Connection succeeded")
-	b.c.AddHandler(b.messageCreate)
-	b.c.AddHandler(b.messageUpdate)
-	err = b.c.Open()
-	if err != nil {
-		flog.Debugf("%#v", err)
-		return err
-	}
-	guilds, err := b.c.UserGuilds()
-	if err != nil {
-		flog.Debugf("%#v", err)
-		return err
-	}
-	userinfo, err := b.c.User("@me")
-	if err != nil {
-		flog.Debugf("%#v", err)
-		return err
-	}
-	b.Nick = userinfo.Username
-	for _, guild := range guilds {
-		if guild.Name == b.Config.Server {
-			b.Channels, err = b.c.GuildChannels(guild.ID)
-			if err != nil {
-				flog.Debugf("%#v", err)
-				return err
-			}
-		}
-	}
-	return nil
+    var err error
+    flog.Info("Connecting")
+    if !strings.HasPrefix(b.Config.Token, "Bot ") {
+        b.Config.Token = "Bot " + b.Config.Token
+    }
+    b.c, err = discordgo.New(b.Config.Token)
+    if err != nil {
+        flog.Debugf("%#v", err)
+        return err
+    }
+    flog.Info("Connection succeeded")
+    b.c.AddHandler(b.messageCreate)
+    b.c.AddHandler(b.messageUpdate)
+    err = b.c.Open()
+    if err != nil {
+        flog.Debugf("%#v", err)
+        return err
+    }
+    guilds, err := b.c.UserGuilds()
+    if err != nil {
+        flog.Debugf("%#v", err)
+        return err
+    }
+    userinfo, err := b.c.User("@me")
+    if err != nil {
+        flog.Debugf("%#v", err)
+        return err
+    }
+    b.Nick = userinfo.Username
+    for _, guild := range guilds {
+        if guild.Name == b.Config.Server {
+            b.Channels, err = b.c.GuildChannels(guild.ID)
+            if err != nil {
+                flog.Debugf("%#v", err)
+                return err
+            }
+        }
+    }
+    return nil
 }
 
 func (b *bdiscord) JoinChannel(channel string) error {
-	idcheck := strings.Split(channel, "ID:")
-	if len(idcheck) > 1 {
-		b.UseChannelID = true
-	}
-	return nil
+    idcheck := strings.Split(channel, "ID:")
+    if len(idcheck) > 1 {
+        b.UseChannelID = true
+    }
+    return nil
 }
 
 func (b *bdiscord) Send(msg config.Message) error {
-	flog.Debugf("Receiving %#v", msg)
-	channelID := b.getChannelID(msg.Channel)
-	if channelID == "" {
-		flog.Errorf("Could not find channelID for %v", msg.Channel)
-		return nil
-	}
+    flog.Debugf("Receiving %#v", msg)
+    channelID := b.getChannelID(msg.Channel)
+    if channelID == "" {
+        flog.Errorf("Could not find channelID for %v", msg.Channel)
+        return nil
+    }
     guilds := map[string]struct{}{}
     for _, ch := range b.Channels {
         guilds[ch.GuildID] = struct{}{}
@@ -133,8 +133,8 @@ func (b *bdiscord) Send(msg config.Message) error {
         }
         return match
     })
-	b.c.ChannelMessageSend(channelID, "<**"+msg.Username+"**> "+text)
-	return nil
+    b.c.ChannelMessageSend(channelID, "<**"+msg.Username+"**> "+text)
+    return nil
 }
 
 func (b *bdiscord) findNick(s *discordgo.Session, user *discordgo.User) string {
@@ -158,29 +158,29 @@ func CleanContent(content string) string {
 }
 
 func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// not relay our own messages
-	if m.Author.Username == b.Nick {
-		return
-	}
+    // not relay our own messages
+    if m.Author.Username == b.Nick {
+        return
+    }
     text := CleanContent(m.ContentWithMentionsReplaced())
     attachments := []Attachment{}
     rest := ""
-	if len(m.Attachments) > 0 {
-		for pos, attach := range m.Attachments {
+    if len(m.Attachments) > 0 {
+        for pos, attach := range m.Attachments {
             form := "[" + attach.Filename + "] " + attach.URL
             attachments = append(attachments, Attachment{attach.ID, form})
-			rest = fmt.Sprintf("%s\n(%d/%d) %s", rest, pos, len(m.Attachments), form)
-		}
-	}
+            rest = fmt.Sprintf("%s\n(%d/%d) %s", rest, pos, len(m.Attachments), form)
+        }
+    }
     b.MessageHist = append(b.MessageHist[1:], Message{m.ID, text, attachments})
-	if text == "" {
-		return
-	}
-	flog.Debugf("Sending message from %s on %s to gateway", m.Author.Username, b.Account)
-	channelName := b.getChannelName(m.ChannelID)
-	if b.UseChannelID {
-		channelName = "ID:" + m.ChannelID
-	}
+    if text == "" {
+        return
+    }
+    flog.Debugf("Sending message from %s on %s to gateway", m.Author.Username, b.Account)
+    channelName := b.getChannelName(m.ChannelID)
+    if b.UseChannelID {
+        channelName = "ID:" + m.ChannelID
+    }
     b.Remote <- config.Message{Username: b.findNick(s, m.Author), Text: text+rest, Channel: channelName,
         Account: b.Account, Avatar: b.getAvatar(m.Author)}
 }
@@ -198,7 +198,7 @@ func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdat
     text := CleanContent(m.ContentWithMentionsReplaced())
     attachments := []Attachment{}
     rest := ""
-	if len(m.Attachments) > 0 {
+    if len(m.Attachments) > 0 {
         Loop: for pos, attach := range m.Attachments {
             if o != nil {
                 for _, v := range o.attachments {
@@ -209,42 +209,42 @@ func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdat
             }
             form := "[" + attach.Filename + "] " + attach.URL
             attachments = append(attachments, Attachment{attach.ID, form})
-			rest = fmt.Sprintf("%s\n(%d/??) %s", rest, pos, form)
-		}
-	}
+            rest = fmt.Sprintf("%s\n(%d/??) %s", rest, pos, form)
+        }
+    }
     b.MessageHist = append(b.MessageHist[1:], Message{m.ID, text, attachments})
     if o != nil && len(o.content)+len(text) < 420 {
         text = o.content + " -> " + text
     } else {
         text = "[???] -> " + text
     }
-	flog.Debugf("Sending edit from %s on %s to gateway", m.Author.Username, b.Account)
-	channelName := b.getChannelName(m.ChannelID)
-	if b.UseChannelID {
-		channelName = "ID:" + m.ChannelID
-	}
+    flog.Debugf("Sending edit from %s on %s to gateway", m.Author.Username, b.Account)
+    channelName := b.getChannelName(m.ChannelID)
+    if b.UseChannelID {
+        channelName = "ID:" + m.ChannelID
+    }
     b.Remote <- config.Message{Username: b.findNick(s, m.Author), Text: text+rest, Channel: channelName,
         Account: b.Account, Avatar: b.getAvatar(m.Author), Event: config.EVENT_EDIT}
 }
 
 func (b *bdiscord) getChannelID(name string) string {
-	idcheck := strings.Split(name, "ID:")
-	if len(idcheck) > 1 {
-		return idcheck[1]
-	}
-	for _, channel := range b.Channels {
-		if channel.Name == name {
-			return channel.ID
-		}
-	}
-	return ""
+    idcheck := strings.Split(name, "ID:")
+    if len(idcheck) > 1 {
+        return idcheck[1]
+    }
+    for _, channel := range b.Channels {
+        if channel.Name == name {
+            return channel.ID
+        }
+    }
+    return ""
 }
 
 func (b *bdiscord) getChannelName(id string) string {
-	for _, channel := range b.Channels {
-		if channel.ID == id {
-			return channel.Name
-		}
-	}
-	return ""
+    for _, channel := range b.Channels {
+        if channel.ID == id {
+            return channel.Name
+        }
+    }
+    return ""
 }
