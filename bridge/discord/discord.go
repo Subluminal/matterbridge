@@ -9,6 +9,17 @@ import (
     "fmt"
 )
 
+type Attachment struct {
+    id           string
+    form         string
+}
+
+type Message struct {
+    id           string
+    content      string
+    attachments  []Attachment
+}
+
 type bdiscord struct {
 	c            *discordgo.Session
 	Config       *config.Protocol
@@ -17,11 +28,13 @@ type bdiscord struct {
 	Channels     []*discordgo.Channel
 	Nick         string
 	UseChannelID bool
+    MessageHist  []Message
 }
 
 var flog *log.Entry
 var protocol = "discord"
 var mentionRegex = regexp.MustCompile("@\\w+")
+var emojiRegex = regexp.MustCompile("<(:\\w+:)\\d+>")
 
 func init() {
 	flog = log.WithFields(log.Fields{"module": protocol})
@@ -32,6 +45,7 @@ func New(cfg config.Protocol, account string, c chan config.Message) *bdiscord {
 	b.Config = &cfg
 	b.Remote = c
 	b.Account = account
+    b.MessageHist = make([]Message, 64)
 	return b
 }
 
@@ -123,17 +137,43 @@ func (b *bdiscord) Send(msg config.Message) error {
 	return nil
 }
 
+func (b *bdiscord) findNick(s *discordgo.Session, user *discordgo.User) string {
+    for _, ch := range b.Channels {
+        member, err := s.GuildMember(ch.GuildID, user.ID)
+        if err == nil && member.Nick != "" {
+            return member.Nick
+        }
+    }
+    return user.Username
+}
+
+func (b *bdiscord) getAvatar(user *discordgo.User) string {
+    return "https://cdn.discordapp.com/avatars/" + user.ID + "/" + user.Avatar + ".jpg"
+}
+
+func CleanContent(content string) string {
+    return emojiRegex.ReplaceAllStringFunc(content, func (match string) string {
+        return emojiRegex.FindStringSubmatch(match)[1]
+    })
+}
+
 func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// not relay our own messages
 	if m.Author.Username == b.Nick {
 		return
 	}
+    text := CleanContent(m.ContentWithMentionsReplaced())
+    attachments := []Attachment{}
+    rest := ""
 	if len(m.Attachments) > 0 {
 		for pos, attach := range m.Attachments {
-			m.Content = fmt.Sprintf("%s\n(%d/%d) [%s] %s", m.Content, pos, len(m.Attachments), attach.Filename, attach.URL)
+            form := "[" + attach.Filename + "] " + attach.URL
+            attachments = append(attachments, Attachment{attach.ID, form})
+			rest = fmt.Sprintf("%s\n(%d/%d) %s", rest, pos, len(m.Attachments), form)
 		}
 	}
-	if m.Content == "" {
+    b.MessageHist = append(b.MessageHist[1:], Message{m.ID, text, attachments})
+	if text == "" {
 		return
 	}
 	flog.Debugf("Sending message from %s on %s to gateway", m.Author.Username, b.Account)
@@ -141,43 +181,50 @@ func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 	if b.UseChannelID {
 		channelName = "ID:" + m.ChannelID
 	}
-    nick := m.Author.Username
-    for _, ch := range b.Channels {
-        member, err := s.GuildMember(ch.GuildID, m.Author.ID)
-        if err == nil && member.Nick != "" {
-            nick = member.Nick
-            break
-        }
-    }
-	b.Remote <- config.Message{Username: nick, Text: m.ContentWithMentionsReplaced(), Channel: channelName,
-		Account: b.Account, Avatar: "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg"}
+    b.Remote <- config.Message{Username: b.findNick(s, m.Author), Text: text+rest, Channel: channelName,
+        Account: b.Account, Avatar: b.getAvatar(m.Author)}
 }
 
 func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdate) {
     if m == nil {
         return
     }
+    var o *Message = nil
+    for _, v := range b.MessageHist {
+        if v.id == m.ID {
+            o = &v
+        }
+    }
+    text := CleanContent(m.ContentWithMentionsReplaced())
+    attachments := []Attachment{}
+    rest := ""
 	if len(m.Attachments) > 0 {
-		for pos, attach := range m.Attachments {
-			m.Content = fmt.Sprintf("%s\n(%d/??) [%s] %s", m.Content, pos, attach.Filename, attach.URL)
+        Loop: for pos, attach := range m.Attachments {
+            if o != nil {
+                for _, v := range o.attachments {
+                    if v.id == attach.ID {
+                        continue Loop
+                    }
+                }
+            }
+            form := "[" + attach.Filename + "] " + attach.URL
+            attachments = append(attachments, Attachment{attach.ID, form})
+			rest = fmt.Sprintf("%s\n(%d/??) %s", rest, pos, form)
 		}
 	}
-	flog.Debugf("Sending message from %s on %s to gateway", m.Author.Username, b.Account)
+    b.MessageHist = append(b.MessageHist[1:], Message{m.ID, text, attachments})
+    if o != nil && len(o.content)+len(text) < 420 {
+        text = o.content + " -> " + text
+    } else {
+        text = "[???] -> " + text
+    }
+	flog.Debugf("Sending edit from %s on %s to gateway", m.Author.Username, b.Account)
 	channelName := b.getChannelName(m.ChannelID)
 	if b.UseChannelID {
 		channelName = "ID:" + m.ChannelID
 	}
-    nick := m.Author.Username
-    for _, ch := range b.Channels {
-        member, err := s.GuildMember(ch.GuildID, m.Author.ID)
-        if err == nil && member.Nick != "" {
-            nick = member.Nick
-            break
-        }
-    }
-    avatarUrl := "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg"
-    b.Remote <- config.Message{Username: nick, Text: m.ContentWithMentionsReplaced(), Channel: channelName,
-    Account: b.Account, Avatar: avatarUrl, Event: config.EVENT_EDIT}
+    b.Remote <- config.Message{Username: b.findNick(s, m.Author), Text: text+rest, Channel: channelName,
+        Account: b.Account, Avatar: b.getAvatar(m.Author), Event: config.EVENT_EDIT}
 }
 
 func (b *bdiscord) getChannelID(name string) string {
