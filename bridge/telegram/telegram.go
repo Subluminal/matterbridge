@@ -58,7 +58,7 @@ func (b *Btelegram) Send(msg config.Message) error {
 	if err != nil {
 		return err
 	}
-	m := tgbotapi.NewMessage(chatid, "&lt;<b>"+msg.Username+"</b>&gt; "+html.EscapeString(msg.Text))
+    m := tgbotapi.NewMessage(chatid, "<b>"+msg.Username+"</b>: "+html.EscapeString(msg.Text))
     m.ParseMode = "html"
 	_, err = b.c.Send(m)
 	return err
@@ -71,7 +71,7 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
 			continue
 		}
 		flog.Debugf("Sending message from %s on %s to gateway", update.Message.From.UserName, b.Account)
-		b.Remote <- config.Message{Username: update.Message.From.UserName, Text: update.Message.Text, Channel: strconv.FormatInt(update.Message.Chat.ID, 10), Account: b.Account}
+		b.Remote <- config.Message{Username: "@"+update.Message.From.UserName, Text: update.Message.Text, Channel: strconv.FormatInt(update.Message.Chat.ID, 10), Account: b.Account}
 
 	}
 }

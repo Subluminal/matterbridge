@@ -5,6 +5,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 	"strings"
+    "regexp"
+    "fmt"
 )
 
 type bdiscord struct {
@@ -19,6 +21,7 @@ type bdiscord struct {
 
 var flog *log.Entry
 var protocol = "discord"
+var mentionRegex = regexp.MustCompile("@\\w+")
 
 func init() {
 	flog = log.WithFields(log.Fields{"module": protocol})
@@ -45,6 +48,7 @@ func (b *bdiscord) Connect() error {
 	}
 	flog.Info("Connection succeeded")
 	b.c.AddHandler(b.messageCreate)
+	b.c.AddHandler(b.messageUpdate)
 	err = b.c.Open()
 	if err != nil {
 		flog.Debugf("%#v", err)
@@ -88,7 +92,34 @@ func (b *bdiscord) Send(msg config.Message) error {
 		flog.Errorf("Could not find channelID for %v", msg.Channel)
 		return nil
 	}
-	b.c.ChannelMessageSend(channelID, "<**"+msg.Username+"**> "+msg.Text)
+    guilds := map[string]struct{}{}
+    for _, ch := range b.Channels {
+        guilds[ch.GuildID] = struct{}{}
+    }
+    nickMap := map[string]string{}
+    for guildid := range guilds {
+        members, err := b.c.GuildMembers(guildid, 0, 1000)
+        if err != nil {
+            continue
+        }
+        for _, member := range members {
+            mention := "<@"+member.User.ID+">"
+            nickMap[strings.ToLower(member.User.Username)] = mention
+            if member.Nick != "" {
+                nickMap[strings.ToLower(member.Nick)] = mention
+            }
+        }
+    }
+    text := mentionRegex.ReplaceAllStringFunc(msg.Text, func (match string) string {
+        flog.Debugf("Searching for %s", match)
+        nick := match[1:]
+        if val, ok := nickMap[nick]; ok {
+            flog.Debugf("Found %s", val)
+            return val
+        }
+        return match
+    })
+	b.c.ChannelMessageSend(channelID, "<**"+msg.Username+"**> "+text)
 	return nil
 }
 
@@ -98,8 +129,8 @@ func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 		return
 	}
 	if len(m.Attachments) > 0 {
-		for _, attach := range m.Attachments {
-			m.Content = m.Content + "\n" + attach.URL
+		for pos, attach := range m.Attachments {
+			m.Content = fmt.Sprintf("%s\n(%d/%d) [%s] %s", m.Content, pos, len(m.Attachments), attach.Filename, attach.URL)
 		}
 	}
 	if m.Content == "" {
@@ -111,15 +142,42 @@ func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 		channelName = "ID:" + m.ChannelID
 	}
     nick := m.Author.Username
-    ch, err := s.Channel(m.ChannelID)
-    if err == nil {
+    for _, ch := range b.Channels {
         member, err := s.GuildMember(ch.GuildID, m.Author.ID)
-        if err == nil {
+        if err == nil && member.Nick != "" {
             nick = member.Nick
+            break
         }
     }
 	b.Remote <- config.Message{Username: nick, Text: m.ContentWithMentionsReplaced(), Channel: channelName,
 		Account: b.Account, Avatar: "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg"}
+}
+
+func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdate) {
+    if m == nil {
+        return
+    }
+	if len(m.Attachments) > 0 {
+		for pos, attach := range m.Attachments {
+			m.Content = fmt.Sprintf("%s\n(%d/??) [%s] %s", m.Content, pos, attach.Filename, attach.URL)
+		}
+	}
+	flog.Debugf("Sending message from %s on %s to gateway", m.Author.Username, b.Account)
+	channelName := b.getChannelName(m.ChannelID)
+	if b.UseChannelID {
+		channelName = "ID:" + m.ChannelID
+	}
+    nick := m.Author.Username
+    for _, ch := range b.Channels {
+        member, err := s.GuildMember(ch.GuildID, m.Author.ID)
+        if err == nil && member.Nick != "" {
+            nick = member.Nick
+            break
+        }
+    }
+    avatarUrl := "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg"
+    b.Remote <- config.Message{Username: nick, Text: m.ContentWithMentionsReplaced(), Channel: channelName,
+    Account: b.Account, Avatar: avatarUrl, Event: config.EVENT_EDIT}
 }
 
 func (b *bdiscord) getChannelID(name string) string {

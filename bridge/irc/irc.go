@@ -106,11 +106,14 @@ func (b *Birc) Send(msg config.Message) error {
 		return nil
 	}
 	for _, text := range strings.Split(msg.Text, "\n") {
+        if len(strings.TrimSpace(text)) == 0 {
+            continue
+        }
 		if len(b.Local) < b.Config.MessageQueue {
 			if len(b.Local) == b.Config.MessageQueue-1 {
 				text = text + " <message clipped>"
 			}
-			b.Local <- config.Message{Text: text, Username: msg.Username, Channel: msg.Channel}
+            b.Local <- config.Message{Text: text, Username: msg.Username, Channel: msg.Channel, Event: msg.Event}
 		} else {
 			flog.Debugf("flooding, dropping message (queue at %d)", len(b.Local))
 		}
@@ -123,7 +126,11 @@ func (b *Birc) doSend() {
 	throttle := time.Tick(rate)
 	for msg := range b.Local {
 		<-throttle
-		b.i.Privmsg(msg.Channel, "["+formatNick(msg.Username)+"] "+msg.Text)
+        nick := formatNick(msg.Username)
+        if msg.Event == config.EVENT_EDIT {
+            nick += "/\x02Edit\x02"
+        }
+        b.i.Privmsg(msg.Channel, "["+nick+"] "+msg.Text)
 	}
 }
 
