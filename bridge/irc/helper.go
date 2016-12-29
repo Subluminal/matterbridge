@@ -5,7 +5,7 @@ import (
     "fmt"
 )
 
-func Tableformatter(nicks []string, nicksPerRow int, continued bool) string {
+func tableformatter(nicks []string, nicksPerRow int, continued bool) string {
     result := "|IRC users"
     if continued {
         result = "|(continued)"
@@ -31,7 +31,7 @@ func Tableformatter(nicks []string, nicksPerRow int, continued bool) string {
     return result
 }
 
-func Plainformatter(nicks []string, nicksPerRow int) string {
+func plainformatter(nicks []string, nicksPerRow int) string {
     return strings.Join(nicks, ", ") + " currently on IRC"
 }
 
@@ -59,12 +59,12 @@ func IsMarkup(message string) bool {
     return false
 }
 
-func FormatNick(nick string) string {
+func formatNick(nick string) string {
     rcolors := []int{19, 20, 22, 24, 25, 26, 27, 28, 29}
     rcolors = append(rcolors[1:], rcolors[0])
     sum := 0
     for _, char := range nick {
         sum += int(char)
     }
-    return fmt.Sprintf("\x03%d@%s\x0f", rcolors[sum % 9] - 16, nick)
+    return fmt.Sprintf("\x03%d@%s\x03", rcolors[sum % 9] - 16, nick)
 }

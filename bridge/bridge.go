@@ -4,8 +4,7 @@ import (
     "github.com/42wim/matterbridge/bridge/config"
     "github.com/42wim/matterbridge/bridge/discord"
     "github.com/42wim/matterbridge/bridge/gitter"
-    "github.com/42wim/matterbridge/bridge/irc/client"
-    "github.com/42wim/matterbridge/bridge/irc/server"
+    "github.com/42wim/matterbridge/bridge/irc"
     "github.com/42wim/matterbridge/bridge/mattermost"
     "github.com/42wim/matterbridge/bridge/rocketchat"
     "github.com/42wim/matterbridge/bridge/slack"
@@ -43,12 +42,9 @@ func New(cfg *config.Config, bridge *config.Bridge, c chan config.Message) *Brid
     case "mattermost":
         b.Config = cfg.Mattermost[name]
         b.Bridger = bmattermost.New(cfg.Mattermost[name], bridge.Account, c)
-    case "ircc":
+    case "irc":
         b.Config = cfg.IRC[name]
-        b.Bridger = bircc.New(cfg.IRC[name], bridge.Account, c)
-    case "ircd":
-        b.Config = cfg.IRCd[name]
-        b.Bridger = bircd.New(cfg.IRCd[name], bridge.Account, c)
+        b.Bridger = birc.New(cfg.IRC[name], bridge.Account, c)
     case "gitter":
         b.Config = cfg.Gitter[name]
         b.Bridger = bgitter.New(cfg.Gitter[name], bridge.Account, c)

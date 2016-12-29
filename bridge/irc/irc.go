@@ -1,9 +1,8 @@
-package bircc
+package birc
 
 import (
     "crypto/tls"
     "fmt"
-    "github.com/42wim/matterbridge/bridge/irc"
     "github.com/42wim/matterbridge/bridge/config"
     log "github.com/Sirupsen/logrus"
     ircm "github.com/sorcix/irc"
@@ -15,7 +14,7 @@ import (
     "time"
 )
 
-type Bircc struct {
+type Birc struct {
     i         *irc.Connection
     Nick      string
     names     map[string][]string
@@ -27,14 +26,14 @@ type Bircc struct {
 }
 
 var flog *log.Entry
-var protocol = "ircc"
+var protocol = "irc"
 
 func init() {
     flog = log.WithFields(log.Fields{"module": protocol})
 }
 
-func New(cfg config.Protocol, account string, c chan config.Message) *Bircc {
-    b := &Bircc{}
+func New(cfg config.Protocol, account string, c chan config.Message) *Birc {
+    b := &Birc{}
     b.Config = &cfg
     b.Nick = b.Config.Nick
     b.Remote = c
@@ -51,7 +50,7 @@ func New(cfg config.Protocol, account string, c chan config.Message) *Bircc {
     return b
 }
 
-func (b *Bircc) Command(msg *config.Message) string {
+func (b *Birc) Command(msg *config.Message) string {
     switch msg.Text {
     case "!users":
         b.i.AddCallback(ircm.RPL_NAMREPLY, b.storeNames)
@@ -61,7 +60,7 @@ func (b *Bircc) Command(msg *config.Message) string {
     return ""
 }
 
-func (b *Bircc) Connect() error {
+func (b *Birc) Connect() error {
     flog.Infof("Connecting %s", b.Config.Server)
     i := irc.IRC(b.Config.Nick, b.Config.Nick)
     if log.GetLevel() == log.DebugLevel {
@@ -92,12 +91,12 @@ func (b *Bircc) Connect() error {
     return nil
 }
 
-func (b *Bircc) JoinChannel(channel string) error {
+func (b *Birc) JoinChannel(channel string) error {
     b.i.Join(channel)
     return nil
 }
 
-func (b *Bircc) Send(msg config.Message) error {
+func (b *Birc) Send(msg config.Message) error {
     flog.Debugf("Receiving %#v", msg)
     if msg.Account == b.Account {
         return nil
@@ -106,27 +105,28 @@ func (b *Bircc) Send(msg config.Message) error {
         b.Command(&msg)
         return nil
     }
-    text := strings.Replace(msg.Text, "\n", " ↵ ", -1)
-    if len(strings.TrimSpace(text)) == 0 {
-        return nil
-    }
-    if len(b.Local) < b.Config.MessageQueue {
-        if len(b.Local) == b.Config.MessageQueue-1 {
-            text = text + " <message clipped>"
+    for _, text := range strings.Split(msg.Text, "\n") {
+        if len(strings.TrimSpace(text)) == 0 {
+            continue
         }
-        b.Local <- config.Message{Text: text, Username: msg.Username, Channel: msg.Channel, Event: msg.Event}
-    } else {
-        flog.Debugf("flooding, dropping message (queue at %d)", len(b.Local))
+        if len(b.Local) < b.Config.MessageQueue {
+            if len(b.Local) == b.Config.MessageQueue-1 {
+                text = text + " <message clipped>"
+            }
+            b.Local <- config.Message{Text: text, Username: msg.Username, Channel: msg.Channel, Event: msg.Event}
+        } else {
+            flog.Debugf("flooding, dropping message (queue at %d)", len(b.Local))
+        }
     }
     return nil
 }
 
-func (b *Bircc) doSend() {
+func (b *Birc) doSend() {
     rate := time.Millisecond * time.Duration(b.Config.MessageDelay)
     throttle := time.Tick(rate)
     for msg := range b.Local {
         <-throttle
-        nick := birc.FormatNick(msg.Username)
+        nick := formatNick(msg.Username)
         if msg.Event == config.EVENT_EDIT {
             nick += "/\x02Edit\x02"
         }
@@ -134,7 +134,7 @@ func (b *Bircc) doSend() {
     }
 }
 
-func (b *Bircc) endNames(event *irc.Event) {
+func (b *Birc) endNames(event *irc.Event) {
     channel := event.Arguments[1]
     sort.Strings(b.names[channel])
     maxNamesPerPost := (300 / b.nicksPerRow()) * b.nicksPerRow()
@@ -152,7 +152,7 @@ func (b *Bircc) endNames(event *irc.Event) {
     b.i.ClearCallback(ircm.RPL_ENDOFNAMES)
 }
 
-func (b *Bircc) handleNewConnection(event *irc.Event) {
+func (b *Birc) handleNewConnection(event *irc.Event) {
     flog.Debug("Registering callbacks")
     i := b.i
     b.Nick = event.Arguments[0]
@@ -173,7 +173,7 @@ func (b *Bircc) handleNewConnection(event *irc.Event) {
     b.connected <- struct{}{}
 }
 
-func (b *Bircc) handleJoinPart(event *irc.Event) {
+func (b *Birc) handleJoinPart(event *irc.Event) {
     flog.Debugf("Sending JOIN_LEAVE event from %s to gateway", b.Account)
     channel := event.Arguments[0]
     if event.Code == "QUIT" {
@@ -183,7 +183,7 @@ func (b *Bircc) handleJoinPart(event *irc.Event) {
     flog.Debugf("handle %#v", event)
 }
 
-func (b *Bircc) handleNotice(event *irc.Event) {
+func (b *Birc) handleNotice(event *irc.Event) {
     if strings.Contains(event.Message(), "This nickname is registered") && event.Nick == b.Config.NickServNick {
         b.i.Privmsg(b.Config.NickServNick, "IDENTIFY "+b.Config.NickServPassword)
     } else {
@@ -192,7 +192,7 @@ func (b *Bircc) handleNotice(event *irc.Event) {
     }
 }
 
-func (b *Bircc) handleOther(event *irc.Event) {
+func (b *Birc) handleOther(event *irc.Event) {
     switch event.Code {
     case "372", "375", "376", "250", "251", "252", "253", "254", "255", "265", "266", "002", "003", "004", "005":
         return
@@ -200,7 +200,7 @@ func (b *Bircc) handleOther(event *irc.Event) {
     flog.Debugf("%#v", event.Raw)
 }
 
-func (b *Bircc) handlePrivMsg(event *irc.Event) {
+func (b *Birc) handlePrivMsg(event *irc.Event) {
     // don't forward queries to the bot
     if event.Arguments[0] == b.Nick {
         return
@@ -221,7 +221,7 @@ func (b *Bircc) handlePrivMsg(event *irc.Event) {
     b.Remote <- config.Message{Username: event.Nick, Text: msg, Channel: event.Arguments[0], Account: b.Account}
 }
 
-func (b *Bircc) handleTopicWhoTime(event *irc.Event) {
+func (b *Birc) handleTopicWhoTime(event *irc.Event) {
     parts := strings.Split(event.Arguments[2], "!")
     t, err := strconv.ParseInt(event.Arguments[3], 10, 64)
     if err != nil {
@@ -234,7 +234,7 @@ func (b *Bircc) handleTopicWhoTime(event *irc.Event) {
     flog.Debugf("%s: Topic set by %s [%s]", event.Code, user, time.Unix(t, 0))
 }
 
-func (b *Bircc) nicksPerRow() int {
+func (b *Birc) nicksPerRow() int {
     return 4
     /*
         if b.Config.Mattermost.NicksPerRow < 1 {
@@ -244,21 +244,21 @@ func (b *Bircc) nicksPerRow() int {
     */
 }
 
-func (b *Bircc) storeNames(event *irc.Event) {
+func (b *Birc) storeNames(event *irc.Event) {
     channel := event.Arguments[2]
     b.names[channel] = append(
         b.names[channel],
         strings.Split(strings.TrimSpace(event.Message()), " ")...)
 }
 
-func (b *Bircc) formatnicks(nicks []string, continued bool) string {
-    return birc.Plainformatter(nicks, b.nicksPerRow())
+func (b *Birc) formatnicks(nicks []string, continued bool) string {
+    return plainformatter(nicks, b.nicksPerRow())
     /*
         switch b.Config.Mattermost.NickFormatter {
         case "table":
-            return birc.Tableformatter(nicks, b.nicksPerRow(), continued)
+            return tableformatter(nicks, b.nicksPerRow(), continued)
         default:
-            return birc.Plainformatter(nicks, b.nicksPerRow())
+            return plainformatter(nicks, b.nicksPerRow())
         }
     */
 }
