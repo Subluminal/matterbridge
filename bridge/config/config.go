@@ -76,6 +76,7 @@ type SameChannelGateway struct {
 
 type Config struct {
     IRC                map[string]Protocol
+    IRCd               map[string]Protocol
     Mattermost         map[string]Protocol
     Slack              map[string]Protocol
     Gitter             map[string]Protocol

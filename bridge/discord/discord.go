@@ -126,7 +126,7 @@ func (b *bdiscord) Send(msg config.Message) error {
     }
     text := mentionRegex.ReplaceAllStringFunc(msg.Text, func (match string) string {
         flog.Debugf("Searching for %s", match)
-        nick := match[1:]
+        nick := strings.ToLower(match[1:])
         if val, ok := nickMap[nick]; ok {
             flog.Debugf("Found %s", val)
             return val
@@ -169,11 +169,11 @@ func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
         for pos, attach := range m.Attachments {
             form := "[" + attach.Filename + "] " + attach.URL
             attachments = append(attachments, Attachment{attach.ID, form})
-            rest = fmt.Sprintf("%s\n(%d/%d) %s", rest, pos, len(m.Attachments), form)
+            rest = fmt.Sprintf("%s\n(%d/%d) %s", rest, pos+1, len(m.Attachments), form)
         }
     }
     b.MessageHist = append(b.MessageHist[1:], Message{m.ID, text, attachments})
-    if text == "" {
+    if text == "" && rest == "" {
         return
     }
     flog.Debugf("Sending message from %s on %s to gateway", m.Author.Username, b.Account)
@@ -209,7 +209,7 @@ func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdat
             }
             form := "[" + attach.Filename + "] " + attach.URL
             attachments = append(attachments, Attachment{attach.ID, form})
-            rest = fmt.Sprintf("%s\n(%d/??) %s", rest, pos, form)
+            rest = fmt.Sprintf("%s\n(%d/??) %s", rest, pos+1, form)
         }
     }
     b.MessageHist = append(b.MessageHist[1:], Message{m.ID, text, attachments})
@@ -217,6 +217,10 @@ func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdat
         text = o.content + " -> " + text
     } else {
         text = "[???] -> " + text
+    }
+    if m.Author == nil {
+        flog.Debugf("ignoring edit %#v on %s", m.Message, b.Account)
+        return
     }
     flog.Debugf("Sending edit from %s on %s to gateway", m.Author.Username, b.Account)
     channelName := b.getChannelName(m.ChannelID)
