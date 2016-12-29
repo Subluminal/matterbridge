@@ -33,8 +33,9 @@ type bdiscord struct {
 
 var flog *log.Entry
 var protocol = "discord"
-var mentionRegex = regexp.MustCompile("@\\w+")
-var emojiRegex = regexp.MustCompile("<(:\\w+:)\\d+>")
+var mentionRegex = regexp.MustCompile(`<@!?(\d+)>`)
+var emojiRegex = regexp.MustCompile(`<(:\w+:)\d+>`)
+var pingRegex = regexp.MustCompile(`@\w+`)
 
 func init() {
     flog = log.WithFields(log.Fields{"module": protocol})
@@ -117,14 +118,14 @@ func (b *bdiscord) Send(msg config.Message) error {
             continue
         }
         for _, member := range members {
-            mention := "<@"+member.User.ID+">"
-            nickMap[strings.ToLower(member.User.Username)] = mention
+            hl := "<@"+member.User.ID+">"
+            nickMap[strings.ToLower(member.User.Username)] = hl
             if member.Nick != "" {
-                nickMap[strings.ToLower(member.Nick)] = mention
+                nickMap[strings.ToLower(member.Nick)] = hl
             }
         }
     }
-    text := mentionRegex.ReplaceAllStringFunc(msg.Text, func (match string) string {
+    text := pingRegex.ReplaceAllStringFunc(msg.Text, func (match string) string {
         flog.Debugf("Searching for %s", match)
         nick := strings.ToLower(match[1:])
         if val, ok := nickMap[nick]; ok {
@@ -151,8 +152,34 @@ func (b *bdiscord) getAvatar(user *discordgo.User) string {
     return "https://cdn.discordapp.com/avatars/" + user.ID + "/" + user.Avatar + ".jpg"
 }
 
-func CleanContent(content string) string {
-    return emojiRegex.ReplaceAllStringFunc(content, func (match string) string {
+func (b *bdiscord) CleanContent(content string) string {
+    guilds := map[string]struct{}{}
+    for _, ch := range b.Channels {
+        guilds[ch.GuildID] = struct{}{}
+    }
+    nickMap := map[string]string{}
+    for guildid := range guilds {
+        members, err := b.c.GuildMembers(guildid, 0, 1000)
+        if err != nil {
+            continue
+        }
+        for _, member := range members {
+            nickMap[member.User.ID] = "@"+member.User.Username
+            if member.Nick != "" {
+                nickMap[member.User.ID] = "@"+member.Nick
+            }
+        }
+    }
+    text := mentionRegex.ReplaceAllStringFunc(content, func (match string) string {
+        id := mentionRegex.FindStringSubmatch(match)[1]
+        flog.Debugf("Searching for %s", id)
+        if val, ok := nickMap[id]; ok {
+            flog.Debugf("Found %s", val)
+            return val
+        }
+        return match
+    })
+    return emojiRegex.ReplaceAllStringFunc(text, func (match string) string {
         return emojiRegex.FindStringSubmatch(match)[1]
     })
 }
@@ -162,7 +189,8 @@ func (b *bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
     if m.Author.Username == b.Nick {
         return
     }
-    text := CleanContent(m.ContentWithMentionsReplaced())
+    log.Infof("! %#v", m.Content)
+    text := b.CleanContent(m.Content)
     attachments := []Attachment{}
     rest := ""
     if len(m.Attachments) > 0 {
@@ -195,7 +223,7 @@ func (b *bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdat
             o = &v
         }
     }
-    text := CleanContent(m.ContentWithMentionsReplaced())
+    text := b.CleanContent(m.Content)
     attachments := []Attachment{}
     rest := ""
     if len(m.Attachments) > 0 {
