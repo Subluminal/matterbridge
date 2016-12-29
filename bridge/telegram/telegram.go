@@ -71,7 +71,7 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
             continue
         }
         flog.Debugf("Sending message from %s on %s to gateway", update.Message.From.UserName, b.Account)
-        b.Remote <- config.Message{Username: "@"+update.Message.From.UserName, Text: update.Message.Text, Channel: strconv.FormatInt(update.Message.Chat.ID, 10), Account: b.Account}
+        b.Remote <- config.Message{Username: "\x1f"+update.Message.From.UserName, Text: update.Message.Text, Channel: strconv.FormatInt(update.Message.Chat.ID, 10), Account: b.Account}
 
     }
 }
