@@ -147,7 +147,7 @@ func (b *bdiscord) findNick(s *discordgo.Session, user *discordgo.User) string {
             break
         }
     }
-    return "D:@"+name
+    return "@"+name
 }
 
 func (b *bdiscord) getAvatar(user *discordgo.User) string {
