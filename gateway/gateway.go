@@ -40,6 +40,8 @@ func (gw *Gateway) AddBridge(cfg *config.Bridge) error {
     log.Infof("Starting bridge: %s ", cfg.Account)
     br := bridge.New(gw.Config, cfg, gw.Message)
     gw.Bridges[cfg.Account] = br
+    log.Infof("! %#v", br)
+    log.Infof("! %#v", br.Connect)
     err := br.Connect()
     if err != nil {
         return fmt.Errorf("Bridge %s failed to start: %v", br.Account, err)
