@@ -66,5 +66,5 @@ func formatNick(nick string) string {
     for _, char := range nick {
         sum += int(char)
     }
-    return fmt.Sprintf("\x03%d@%s\x03", rcolors[sum % 9] - 16, nick)
+    return fmt.Sprintf("\x03%d%s\x03", rcolors[sum % 9] - 16, nick)
 }

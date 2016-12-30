@@ -139,13 +139,15 @@ func (b *bdiscord) Send(msg config.Message) error {
 }
 
 func (b *bdiscord) findNick(s *discordgo.Session, user *discordgo.User) string {
+    name := user.Username
     for _, ch := range b.Channels {
         member, err := s.GuildMember(ch.GuildID, user.ID)
         if err == nil && member.Nick != "" {
-            return member.Nick
+            name = member.Nick
+            break
         }
     }
-    return user.Username
+    return "D:@"+name
 }
 
 func (b *bdiscord) getAvatar(user *discordgo.User) string {
