@@ -2,8 +2,11 @@ package birc
 
 import (
     "strings"
+    "regexp"
     "fmt"
 )
+
+var tongueRegex = regexp.MustCompile("\U0001F61B")
 
 func tableformatter(nicks []string, nicksPerRow int, continued bool) string {
     result := "|IRC users"
@@ -67,4 +70,9 @@ func formatNick(nick string) string {
         sum += int(char)
     }
     return fmt.Sprintf("\x03%d%s\x03", rcolors[sum % 9] - 16, nick)
+}
+
+func cleanupEmoji(message string) string {
+    message = tongueRegex.ReplaceAllString(message, ":P")
+    return message
 }

@@ -113,7 +113,7 @@ func (b *Birc) Send(msg config.Message) error {
             if len(b.Local) == b.Config.MessageQueue-1 {
                 text = text + " <message clipped>"
             }
-            b.Local <- config.Message{Text: text, Username: msg.Username, Channel: msg.Channel, Event: msg.Event}
+            b.Local <- config.Message{Text: cleanupEmoji(text), Username: msg.Username, Channel: msg.Channel, Event: msg.Event}
         } else {
             flog.Debugf("flooding, dropping message (queue at %d)", len(b.Local))
         }
