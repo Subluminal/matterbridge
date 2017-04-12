@@ -34,6 +34,7 @@ type bdiscord struct {
 var flog *log.Entry
 var protocol = "discord"
 var mentionRegex = regexp.MustCompile(`<@!?(\d+)>`)
+var chanRegex = regexp.MustCompile(`<#(\d+)>`)
 var emojiRegex = regexp.MustCompile(`<(:\w+:)\d+>`)
 var pingRegex = regexp.MustCompile(`@\w+`)
 
@@ -160,19 +161,34 @@ func (b *bdiscord) CleanContent(content string) string {
         guilds[ch.GuildID] = struct{}{}
     }
     nickMap := map[string]string{}
+    chanMap := map[string]string{}
     for guildid := range guilds {
-        members, err := b.c.GuildMembers(guildid, 0, 1000)
-        if err != nil {
-            continue
+        channels, cerr := b.c.GuildChannels(guildid)
+        if cerr == nil {
+            for _, channel := range channels {
+                chanMap[channel.ID] = "#"+channel.Name
+            }
         }
-        for _, member := range members {
-            nickMap[member.User.ID] = "@"+member.User.Username
-            if member.Nick != "" {
-                nickMap[member.User.ID] = "@"+member.Nick
+        members, merr := b.c.GuildMembers(guildid, 0, 1000)
+        if merr == nil {
+            for _, member := range members {
+                nickMap[member.User.ID] = "@"+member.User.Username
+                if member.Nick != "" {
+                    nickMap[member.User.ID] = "@"+member.Nick
+                }
             }
         }
     }
-    text := mentionRegex.ReplaceAllStringFunc(content, func (match string) string {
+    text := chanRegex.ReplaceAllStringFunc(content, func (match string) string {
+        id := chanRegex.FindStringSubmatch(match)[1]
+        flog.Debugf("Searching for %s", id)
+        if val, ok := chanMap[id]; ok {
+            flog.Debugf("Found %s", val)
+            return val
+        }
+        return match
+    })
+    text = mentionRegex.ReplaceAllStringFunc(text, func (match string) string {
         id := mentionRegex.FindStringSubmatch(match)[1]
         flog.Debugf("Searching for %s", id)
         if val, ok := nickMap[id]; ok {
