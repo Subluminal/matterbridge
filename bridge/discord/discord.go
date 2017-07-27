@@ -161,6 +161,7 @@ func (b *bdiscord) CleanContent(content string) string {
     }
     nickMap := map[string]string{}
     for guildid := range guilds {
+        flog.Debugf("Working with guild %d", guildid)
         members, err := b.c.GuildMembers(guildid, 0, 1000)
         if err != nil {
             continue
@@ -170,8 +171,10 @@ func (b *bdiscord) CleanContent(content string) string {
             if member.Nick != "" {
                 nickMap[member.User.ID] = "@"+member.Nick
             }
+            flog.Debugf("%d -> %s", member.User.ID, nickMap[member.User.ID])
         }
     }
+    flog.Debugf("Nick map: %#v", nickMap)
     text := mentionRegex.ReplaceAllStringFunc(content, func (match string) string {
         id := mentionRegex.FindStringSubmatch(match)[1]
         flog.Debugf("Searching for %s", id)

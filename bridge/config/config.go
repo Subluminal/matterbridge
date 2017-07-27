@@ -43,7 +43,7 @@ type Protocol struct {
     MessageQueue           int    // IRC, size of message queue for flood control
     MessageDelay           int    // IRC, time in millisecond to wait between messages
     RemoteNickFormat       string // all protocols
-    Server                 string // IRC,mattermost,XMPP,discord
+    Server                 string // IRC,mattermost,XMPP,discord,unreal
     ShowJoinPart           bool   // all protocols
     SkipTLSVerify          bool   // IRC, mattermost
     Team                   string // mattermost
@@ -83,6 +83,7 @@ type Config struct {
     Discord            map[string]Protocol
     Telegram           map[string]Protocol
     Rocketchat         map[string]Protocol
+    Unreal             map[string]Protocol
     General            Protocol
     Gateway            []Gateway
     SameChannelGateway []SameChannelGateway
