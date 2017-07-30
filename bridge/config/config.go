@@ -37,13 +37,14 @@ type Protocol struct {
     NickServPassword       string // IRC
     NicksPerRow            int    // mattermost, slack
     NoTLS                  bool   // mattermost
-    Password               string // IRC,mattermost,XMPP
+    Password               string // IRC,mattermost,XMPP,unreal
     PrefixMessagesWithNick bool   // mattemost, slack
     Protocol               string //all protocols
     MessageQueue           int    // IRC, size of message queue for flood control
     MessageDelay           int    // IRC, time in millisecond to wait between messages
     RemoteNickFormat       string // all protocols
     Server                 string // IRC,mattermost,XMPP,discord,unreal
+    Sid                    string // unreal
     ShowJoinPart           bool   // all protocols
     SkipTLSVerify          bool   // IRC, mattermost
     Team                   string // mattermost
