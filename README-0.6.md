@@ -6,10 +6,10 @@ Simple bridge between mattermost, IRC, XMPP, Gitter and Slack
 * Supports multiple channels.
 * Matterbridge can also work with private groups on your mattermost.
 
-Look at [matterbridge.conf.sample] (https://github.com/42wim/matterbridge/blob/master/matterbridge.conf.sample) for documentation and an example.
+Look at [matterbridge.conf.sample] (https://github.com/Subluminal/matterbridge/blob/master/matterbridge.conf.sample) for documentation and an example.
 
 ## Changelog
-Since v0.6.1 support for XMPP, Gitter and Slack is added. More details in [changelog.md] (https://github.com/42wim/matterbridge/blob/master/changelog.md)
+Since v0.6.1 support for XMPP, Gitter and Slack is added. More details in [changelog.md] (https://github.com/Subluminal/matterbridge/blob/master/changelog.md)
 
 ## Requirements:
 Accounts to one of the supported bridges
@@ -20,16 +20,16 @@ Accounts to one of the supported bridges
 * [Slack] (https://www.slack.com)
 
 ## binaries
-Binaries can be found [here] (https://github.com/42wim/matterbridge/releases/)
-* For use with mattermost 3.3.0+ [v0.6.1](https://github.com/42wim/matterircd/releases/tag/v0.6.1)
-* For use with mattermost 3.0.0-3.2.0 [v0.5.0](https://github.com/42wim/matterircd/releases/tag/v0.5.0)
+Binaries can be found [here] (https://github.com/Subluminal/matterbridge/releases/)
+* For use with mattermost 3.3.0+ [v0.6.1](https://github.com/Subluminal/matterircd/releases/tag/v0.6.1)
+* For use with mattermost 3.0.0-3.2.0 [v0.5.0](https://github.com/Subluminal/matterircd/releases/tag/v0.5.0)
 
 
 ## Docker
 Create your matterbridge.conf file locally eg in ```/tmp/matterbridge.conf```
 
 ```
-docker run -ti -v /tmp/matterbridge.conf:/matterbridge.conf 42wim/matterbridge:0.6.1
+docker run -ti -v /tmp/matterbridge.conf:/matterbridge.conf Subluminal/matterbridge:0.6.1
 ```
 
 ## Compatibility
@@ -50,7 +50,7 @@ Go 1.6+ is required. Make sure you have [Go](https://golang.org/doc/install) pro
 
 ```
 cd $GOPATH
-go get github.com/42wim/matterbridge
+go get github.com/Subluminal/matterbridge
 ```
 
 You should now have matterbridge binary in the bin directory:
@@ -81,7 +81,7 @@ Usage of ./matterbridge:
 ### matterbridge
 matterbridge looks for matterbridge.conf in current directory. (use -conf to specify another file)
 
-Look at [matterbridge.conf.sample] (https://github.com/42wim/matterbridge/blob/master/matterbridge.conf.sample) for an example.
+Look at [matterbridge.conf.sample] (https://github.com/Subluminal/matterbridge/blob/master/matterbridge.conf.sample) for an example.
 
 ### mattermost
 #### webhooks version
@@ -103,7 +103,7 @@ You'll have to create a new dedicated user on your mattermost instance.
 Specify the login and password in [mattermost] section of matterbridge.conf
 
 ## FAQ
-Please look at [matterbridge.conf.sample] (https://github.com/42wim/matterbridge/blob/master/matterbridge.conf.sample) for more information first. 
+Please look at [matterbridge.conf.sample] (https://github.com/Subluminal/matterbridge/blob/master/matterbridge.conf.sample) for more information first. 
 ### Mattermost doesn't show the IRC nicks
 If you're running the webhooks version, this can be fixed by either:
 * enabling "override usernames". See [mattermost documentation](http://docs.mattermost.com/developer/webhooks-incoming.html#enabling-incoming-webhooks)

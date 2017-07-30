@@ -2,16 +2,16 @@
 	"version": 0,
 	"dependencies": [
 		{
-			"importpath": "github.com/42wim/go-gitter",
-			"repository": "https://github.com/42wim/go-gitter",
+			"importpath": "github.com/Subluminal/go-gitter",
+			"repository": "https://github.com/Subluminal/go-gitter",
 			"vcs": "git",
 			"revision": "ae777f740326ef6b4d910496022649859232ff38",
 			"branch": "fixloop",
 			"notests": true
 		},
 		{
-			"importpath": "github.com/42wim/matterbridge-plus/bridge",
-			"repository": "https://github.com/42wim/matterbridge-plus",
+			"importpath": "github.com/Subluminal/matterbridge-plus/bridge",
+			"repository": "https://github.com/Subluminal/matterbridge-plus",
 			"vcs": "git",
 			"revision": "63c7caabf4b92fa47060cf37beb0ed814cefbaea",
 			"branch": "master",
@@ -19,8 +19,8 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/42wim/matterbridge-plus/matterclient",
-			"repository": "https://github.com/42wim/matterbridge-plus",
+			"importpath": "github.com/Subluminal/matterbridge-plus/matterclient",
+			"repository": "https://github.com/Subluminal/matterbridge-plus",
 			"vcs": "git",
 			"revision": "63c7caabf4b92fa47060cf37beb0ed814cefbaea",
 			"branch": "master",

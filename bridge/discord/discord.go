@@ -1,7 +1,7 @@
 package bdiscord
 
 import (
-    "github.com/42wim/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/bridge/config"
     log "github.com/Sirupsen/logrus"
     "github.com/bwmarrin/discordgo"
     "strings"
