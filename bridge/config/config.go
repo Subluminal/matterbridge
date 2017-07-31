@@ -12,6 +12,7 @@ const (
     EVENT_JOIN_LEAVE = "join_leave"
     EVENT_ACTION = "action"
     EVENT_EDIT = "edit"
+    EVENT_PM = "pm"
 )
 
 type Message struct {

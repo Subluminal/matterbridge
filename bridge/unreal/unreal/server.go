@@ -129,7 +129,7 @@ func (s *Server) handle(msg *ircm.Message) {
                 }
             }
         }
-    case "PRIVMSG":
+    case "PRIVMSG", "NOTICE":
         channel := msg.Params[0]
         text := msg.Trailing
         nick := msg.Prefix.Name
@@ -144,12 +144,83 @@ func (s *Server) handle(msg *ircm.Message) {
                 }
                 return match
             })
-            s.cb(nick, channel, text)
-            log.Println(nick + " ! " + text)
+            if text[0] == '\x01' && text[len(text)-1] == '\x01' {
+                ctcp := strings.SplitN(text[1:len(text)-1], " ", 2)
+                cmd := ctcp[0]
+                param := ""
+                if len(ctcp) > 1 {
+                    param = ctcp[1]
+                }
+                switch cmd {
+                case "ACTION":
+                    text = "*" + param + "*"
+                    s.cb(nick, channel, text)
+                    log.Println(nick + " ! " + text)
+                case "VERSION":
+                    for _, nick := range s.getVirtualUsers() {
+                        s.sendRaw(":" + nick + " NOTICE " + channel + " :\x01VERSION Matterbridge Virtual User\x01")
+                    }
+                case "PING":
+                    for _, nick := range s.getVirtualUsers() {
+                        s.sendRaw(":" + nick + " NOTICE " + channel + " :\x01PING " + param + "\x01")
+                    }
+                default:
+                    log.Println(nick + " ! CTCP " + cmd + " " + param)
+                }
+            } else {
+                s.cb(nick, channel, text)
+                log.Println(nick + " ! " + text)
+            }
+        } else {
+            if text[0] == '\x01' && text[len(text)-1] == '\x01' {
+                ctcp := strings.SplitN(text[1:len(text)-1], " ", 2)
+                cmd := ctcp[0]
+                param := ""
+                if len(ctcp) > 1 {
+                    param = ctcp[1]
+                }
+                if channel[0] == '#' {
+                    switch cmd {
+                    case "VERSION":
+                        for _, nick := range s.getVirtualUsers() {
+                            s.sendRaw(":" + nick + " NOTICE " + channel + " :\x01VERSION Matterbridge Virtual User\x01")
+                        }
+                    case "PING":
+                        for _, nick := range s.getVirtualUsers() {
+                            s.sendRaw(":" + nick + " NOTICE " + channel + " :\x01PING " + param + "\x01")
+                        }
+                    default:
+                        log.Println(nick + " ! CTCP " + cmd + ":" + param)
+                    }
+                } else {
+                    switch cmd {
+                    case "VERSION":
+                        s.sendRaw(":" + channel + " NOTICE " + nick + " :\x01VERSION Matterbridge Virtual User\x01")
+                    case "PING":
+                        s.sendRaw(":" + channel + " NOTICE " + nick + " :\x01PING " + param + "\x01")
+                    default:
+                        log.Println(nick + " ! CTCP " + cmd + ":" + param)
+                    }
+                }
+            }
         }
     default:
         log.Printf("Unhandled Command: %s |= %s", msg.Command, msg.Bytes())
     }
+}
+
+func (s *Server) getVirtualUsers() []string {
+    nicks := make(map[string]struct{})
+    for _, nickMap := range s.names {
+        for _, nick := range nickMap {
+            nicks[nick] = struct{}{}
+        }
+    }
+    users := []string{}
+    for nick := range nicks {
+        users = append(users, nick)
+    }
+    return users
 }
 
 // dropCR drops a terminal \r from the data.
