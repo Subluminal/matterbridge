@@ -9,36 +9,36 @@ Simple bridge between mattermost, IRC, XMPP, Gitter, Slack, Discord, Telegram, R
 * Allow for bridging the same bridges, which means you can eg bridge between multiple mattermosts.
 * The bridge is now a gateway which has support multiple in and out bridges. (and supports multiple gateways).
 
-Look at [matterbridge.toml.sample] (https://github.com/42wim/matterbridge/blob/master/matterbridge.toml.sample) for documentation and an example.
-Look at [matterbridge.toml.simple] (https://github.com/42wim/matterbridge/blob/master/matterbridge.toml.simple) for a simple example.
+Look at [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for documentation and an example.
+Look at [matterbridge.toml.simple](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.simple) for a simple example.
 
 
 ## Changelog
-Since v0.7.0 the configuration has changed. More details in [changelog.md] (https://github.com/42wim/matterbridge/blob/master/changelog.md)
+Since v0.7.0 the configuration has changed. More details in [changelog.md](https://github.com/Subluminal/matterbridge/blob/master/changelog.md)
 
 ## Requirements
 Accounts to one of the supported bridges
-* [Mattermost] (https://github.com/mattermost/platform/)
-* [IRC] (http://www.mirc.com/servers.html)
-* [XMPP] (https://jabber.org)
-* [Gitter] (https://gitter.im)
-* [Slack] (https://slack.com)
-* [Discord] (https://discordapp.com)
-* [Telegram] (https://telegram.org)
-* [Hipchat] (https://www.hipchat.com)
-* [Rocket.chat] (https://rocket.chat)
+* [Mattermost](https://github.com/mattermost/platform/)
+* [IRC](http://www.mirc.com/servers.html)
+* [XMPP](https://jabber.org)
+* [Gitter](https://gitter.im)
+* [Slack](https://slack.com)
+* [Discord](https://discordapp.com)
+* [Telegram](https://telegram.org)
+* [Hipchat](https://www.hipchat.com)
+* [Rocket.chat](https://rocket.chat)
 
 ## Docker
 Create your matterbridge.toml file locally eg in ```/tmp/matterbridge.toml```
 ```
-docker run -ti -v /tmp/matterbridge.toml:/matterbridge.toml 42wim/matterbridge
+docker run -ti -v /tmp/matterbridge.toml:/matterbridge.toml Subluminal/matterbridge
 ```
 
 ## binaries
-Binaries can be found [here] (https://github.com/42wim/matterbridge/releases/)
-* For use with mattermost 3.5.0+ [v0.9.0](https://github.com/42wim/matterircd/releases/tag/v0.9.0)
-* For use with mattermost 3.3.0 - 3.4.0 [v0.7.1](https://github.com/42wim/matterircd/releases/tag/v0.7.1)
-* For use with mattermost 3.0.0 - 3.2.0 [v0.5.0](https://github.com/42wim/matterircd/releases/tag/v0.5.0) (not maintained anymore)
+Binaries can be found [here](https://github.com/Subluminal/matterbridge/releases/)
+* For use with mattermost 3.5.0+ [v0.9.0](https://github.com/Subluminal/matterircd/releases/tag/v0.9.0)
+* For use with mattermost 3.3.0 - 3.4.0 [v0.7.1](https://github.com/Subluminal/matterircd/releases/tag/v0.7.1)
+* For use with mattermost 3.0.0 - 3.2.0 [v0.5.0](https://github.com/Subluminal/matterircd/releases/tag/v0.5.0) (not maintained anymore)
 
 ## Compatibility
 ### Mattermost 
@@ -55,11 +55,11 @@ Binaries can be found [here] (https://github.com/42wim/matterbridge/releases/)
 
 
 ## building
-Go 1.6+ is required. Make sure you have [Go](https://golang.org/doc/install) properly installed, including setting up your [GOPATH] (https://golang.org/doc/code.html#GOPATH)
+Go 1.6+ is required. Make sure you have [Go](https://golang.org/doc/install) properly installed, including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH)
 
 ```
 cd $GOPATH
-go get github.com/42wim/matterbridge
+go get github.com/Subluminal/matterbridge
 ```
 
 You should now have matterbridge binary in the bin directory:
@@ -88,7 +88,7 @@ Usage of ./matterbridge:
 ### matterbridge
 matterbridge looks for matterbridge.toml in current directory. (use -conf to specify another file)
 
-Look at [matterbridge.toml.sample] (https://github.com/42wim/matterbridge/blob/master/matterbridge.toml.sample) for an example.
+Look at [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for an example.
 
 ### mattermost
 #### webhooks version
@@ -106,7 +106,7 @@ Choose a channel (the same as the one from incoming webhooks) and fill in the ad
 e.g. http://192.168.1.1:9999 (192.168.1.1:9999 is the BindAddress specified in [mattermost] section of matterbridge.conf)
 
 ## FAQ
-Please look at [matterbridge.toml.sample] (https://github.com/42wim/matterbridge/blob/master/matterbridge.toml.sample) for more information first. 
+Please look at [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for more information first. 
 ### Mattermost doesn't show the IRC nicks
 If you're running the webhooks version, this can be fixed by either:
 * enabling "override usernames". See [mattermost documentation](http://docs.mattermost.com/developer/webhooks-incoming.html#enabling-incoming-webhooks)

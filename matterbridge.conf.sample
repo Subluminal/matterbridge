@@ -264,7 +264,7 @@ mattermost="off-topic"
 xmpp="off-topic"
 #Choose the Gitter channel to send messages to.
 #Gitter channels are named "user/repo"
-gitter="42wim/matterbridge"
+gitter="Subluminal/matterbridge"
 #Choose the slack channel to send messages to.
 slack="general"
 

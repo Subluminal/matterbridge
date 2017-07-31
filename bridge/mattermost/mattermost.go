@@ -1,9 +1,9 @@
 package bmattermost
 
 import (
-    "github.com/42wim/matterbridge/bridge/config"
-    "github.com/42wim/matterbridge/matterclient"
-    "github.com/42wim/matterbridge/matterhook"
+    "github.com/Subluminal/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/matterclient"
+    "github.com/Subluminal/matterbridge/matterhook"
     log "github.com/Sirupsen/logrus"
 )
 

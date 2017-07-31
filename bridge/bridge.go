@@ -1,16 +1,16 @@
 package bridge
 
 import (
-    "github.com/42wim/matterbridge/bridge/config"
-    "github.com/42wim/matterbridge/bridge/discord"
-    "github.com/42wim/matterbridge/bridge/gitter"
-    "github.com/42wim/matterbridge/bridge/irc"
-    "github.com/42wim/matterbridge/bridge/mattermost"
-    "github.com/42wim/matterbridge/bridge/rocketchat"
-    "github.com/42wim/matterbridge/bridge/slack"
-    "github.com/42wim/matterbridge/bridge/telegram"
-    "github.com/42wim/matterbridge/bridge/unreal"
-    "github.com/42wim/matterbridge/bridge/xmpp"
+    "github.com/Subluminal/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/bridge/discord"
+    "github.com/Subluminal/matterbridge/bridge/gitter"
+    "github.com/Subluminal/matterbridge/bridge/irc"
+    "github.com/Subluminal/matterbridge/bridge/mattermost"
+    "github.com/Subluminal/matterbridge/bridge/rocketchat"
+    "github.com/Subluminal/matterbridge/bridge/slack"
+    "github.com/Subluminal/matterbridge/bridge/telegram"
+    "github.com/Subluminal/matterbridge/bridge/unreal"
+    "github.com/Subluminal/matterbridge/bridge/xmpp"
     "strings"
 )
 

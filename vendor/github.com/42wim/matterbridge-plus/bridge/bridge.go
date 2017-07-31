@@ -2,8 +2,8 @@ package bridge
 
 import (
 	"crypto/tls"
-	"github.com/42wim/matterbridge-plus/matterclient"
-	"github.com/42wim/matterbridge/matterhook"
+	"github.com/Subluminal/matterbridge-plus/matterclient"
+	"github.com/Subluminal/matterbridge/matterhook"
 	log "github.com/Sirupsen/logrus"
 	"github.com/peterhellberg/giphy"
 	ircm "github.com/sorcix/irc"

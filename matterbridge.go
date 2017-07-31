@@ -3,9 +3,9 @@ package main
 import (
     "flag"
     "fmt"
-    "github.com/42wim/matterbridge/bridge/config"
-    "github.com/42wim/matterbridge/gateway"
-    "github.com/42wim/matterbridge/gateway/samechannel"
+    "github.com/Subluminal/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/gateway"
+    "github.com/Subluminal/matterbridge/gateway/samechannel"
     log "github.com/Sirupsen/logrus"
 )
 

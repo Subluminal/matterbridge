@@ -3,7 +3,7 @@ package birc
 import (
     "crypto/tls"
     "fmt"
-    "github.com/42wim/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/bridge/config"
     log "github.com/Sirupsen/logrus"
     ircm "github.com/sorcix/irc"
     "github.com/thoj/go-ircevent"

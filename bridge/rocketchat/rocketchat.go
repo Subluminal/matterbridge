@@ -1,9 +1,9 @@
 package brocketchat
 
 import (
-    "github.com/42wim/matterbridge/bridge/config"
-    "github.com/42wim/matterbridge/hook/rockethook"
-    "github.com/42wim/matterbridge/matterhook"
+    "github.com/Subluminal/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/hook/rockethook"
+    "github.com/Subluminal/matterbridge/matterhook"
     log "github.com/Sirupsen/logrus"
 )
 

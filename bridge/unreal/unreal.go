@@ -2,8 +2,8 @@ package bunreal
 
 import (
     "regexp"
-    "github.com/42wim/matterbridge/bridge/config"
-    "github.com/42wim/matterbridge/bridge/unreal/unreal"
+    "github.com/Subluminal/matterbridge/bridge/config"
+    "github.com/Subluminal/matterbridge/bridge/unreal/unreal"
     log "github.com/Sirupsen/logrus"
 )
 
