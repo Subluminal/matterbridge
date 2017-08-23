@@ -108,8 +108,11 @@ func (b *Birc) Send(msg config.Message) error {
 		return nil
 	}
 
+	re := regexp.MustCompile(`[[:cntrl:]](\d+,|)\d+`)
+	user := re.ReplaceAllString(msg.Username, "")
+
 	for _, u := range b.Ignored {
-		if u == strings.Split(msg.Username, "\x02")[2] {
+		if u == strings.Split(user, "@")[1] {
 			return nil
 		}
 	}
