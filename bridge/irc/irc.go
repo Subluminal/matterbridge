@@ -191,7 +191,7 @@ func (b *Birc) handleJoinPart(event *irc.Event) {
 	if event.Code == "QUIT" {
 		channel = ""
 	}
-	b.Remote <- config.Message{Username: "system", Text: event.Nick + " " + strings.ToLower(event.Code) + "s", Channel: channel, Account: b.Account, Event: config.EVENT_JOIN_LEAVE}
+	b.Remote <- config.Message{Username: channel, Text: event.Nick + " " + strings.ToLower(event.Code) + "s", Channel: channel, Account: b.Account, Event: config.EVENT_JOIN_LEAVE}
 	flog.Debugf("handle %#v", event)
 }
 
