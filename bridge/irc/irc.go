@@ -138,7 +138,7 @@ func (b *Birc) doSend() {
 	throttle := time.Tick(rate)
 	for msg := range b.Local {
 		<-throttle
-		nick := msg.Username
+		nick := formatNick(msg.Username)
 		if msg.Event == config.EVENT_EDIT {
 			nick += "/\x02Edit\x02"
 		}
