@@ -13,11 +13,10 @@ type MMhook struct {
 }
 
 type Brocketchat struct {
-    MMhook
-    Config  *config.Protocol
-    Remote  chan config.Message
-    name    string
-    Account string
+	MMhook
+	Config  *config.Protocol
+	Remote  chan config.Message
+	Account string
 }
 
 var flog *log.Entry
@@ -40,43 +39,52 @@ func (b *Brocketchat) Command(cmd string) string {
 }
 
 func (b *Brocketchat) Connect() error {
-    flog.Info("Connecting webhooks")
-    b.mh = matterhook.New(b.Config.URL,
-        matterhook.Config{InsecureSkipVerify: b.Config.SkipTLSVerify,
-            DisableServer: true})
-    b.rh = rockethook.New(b.Config.URL, rockethook.Config{BindAddress: b.Config.BindAddress})
-    go b.handleRocketHook()
-    return nil
+	flog.Info("Connecting webhooks")
+	b.mh = matterhook.New(b.Config.WebhookURL,
+		matterhook.Config{InsecureSkipVerify: b.Config.SkipTLSVerify,
+			DisableServer: true})
+	b.rh = rockethook.New(b.Config.WebhookURL, rockethook.Config{BindAddress: b.Config.WebhookBindAddress})
+	go b.handleRocketHook()
+	return nil
 }
 
-func (b *Brocketchat) JoinChannel(channel string) error {
-    return nil
+func (b *Brocketchat) Disconnect() error {
+	return nil
+
 }
 
-func (b *Brocketchat) Send(msg config.Message) error {
-    flog.Debugf("Receiving %#v", msg)
-    matterMessage := matterhook.OMessage{IconURL: b.Config.IconURL}
-    matterMessage.Channel = msg.Channel
-    matterMessage.UserName = msg.Username
-    matterMessage.Type = ""
-    matterMessage.Text = msg.Text
-    err := b.mh.Send(matterMessage)
-    if err != nil {
-        flog.Info(err)
-        return err
-    }
-    return nil
+func (b *Brocketchat) JoinChannel(channel config.ChannelInfo) error {
+	return nil
+}
+
+func (b *Brocketchat) Send(msg config.Message) (string, error) {
+	// ignore delete messages
+	if msg.Event == config.EVENT_MSG_DELETE {
+		return "", nil
+	}
+	flog.Debugf("Receiving %#v", msg)
+	matterMessage := matterhook.OMessage{IconURL: b.Config.IconURL}
+	matterMessage.Channel = msg.Channel
+	matterMessage.UserName = msg.Username
+	matterMessage.Type = ""
+	matterMessage.Text = msg.Text
+	err := b.mh.Send(matterMessage)
+	if err != nil {
+		flog.Info(err)
+		return "", err
+	}
+	return "", nil
 }
 
 func (b *Brocketchat) handleRocketHook() {
-    for {
-        message := b.rh.Receive()
-        flog.Debugf("Receiving from rockethook %#v", message)
-        // do not loop
-        if message.UserName == b.Config.Nick {
-            continue
-        }
-        flog.Debugf("Sending message from %s on %s to gateway", message.UserName, b.Account)
-        b.Remote <- config.Message{Text: message.Text, Username: message.UserName, Channel: message.ChannelName, Account: b.Account}
-    }
+	for {
+		message := b.rh.Receive()
+		flog.Debugf("Receiving from rockethook %#v", message)
+		// do not loop
+		if message.UserName == b.Config.Nick {
+			continue
+		}
+		flog.Debugf("Sending message from %s on %s to gateway", message.UserName, b.Account)
+		b.Remote <- config.Message{Text: message.Text, Username: message.UserName, Channel: message.ChannelName, Account: b.Account, UserID: message.UserID}
+	}
 }

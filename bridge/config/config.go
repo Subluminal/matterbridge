@@ -1,64 +1,113 @@
 package config
 
 import (
-    "github.com/BurntSushi/toml"
-    "log"
-    "os"
-    "reflect"
-    "strings"
+	"github.com/BurntSushi/toml"
+	"log"
+	"os"
+	"reflect"
+	"strings"
+	"time"
 )
 
 const (
-    EVENT_JOIN_LEAVE = "join_leave"
-    EVENT_ACTION = "action"
+	EVENT_JOIN_LEAVE      = "join_leave"
+	EVENT_FAILURE         = "failure"
+	EVENT_REJOIN_CHANNELS = "rejoin_channels"
+	EVENT_USER_ACTION     = "user_action"
+	EVENT_MSG_DELETE      = "msg_delete"
     EVENT_EDIT = "edit"
     EVENT_PM = "pm"
 )
 
 type Message struct {
-    Text     string
-    Channel  string
-    Username string
-    Avatar   string
-    Account  string
-    Event    string
+	Text      string    `json:"text"`
+	Channel   string    `json:"channel"`
+	Username  string    `json:"username"`
+	UserID    string    `json:"userid"` // userid on the bridge
+	Avatar    string    `json:"avatar"`
+	Account   string    `json:"account"`
+	Event     string    `json:"event"`
+	Protocol  string    `json:"protocol"`
+	Gateway   string    `json:"gateway"`
+	Timestamp time.Time `json:"timestamp"`
+	ID        string    `json:"id"`
+	Extra     map[string][]interface{}
+}
+
+type FileInfo struct {
+	Name string
+	Data *[]byte
+}
+
+type ChannelInfo struct {
+	Name        string
+	Account     string
+	Direction   string
+	ID          string
+	SameChannel map[string]bool
+	Options     ChannelOptions
 }
 
 type Protocol struct {
-    BindAddress            string // mattermost, slack
-    IconURL                string // mattermost, slack
-    IgnoreNicks            string // all protocols
-    Jid                    string // xmpp
-    Login                  string // mattermost
-    Muc                    string // xmpp
-    Name                   string // all protocols
-    Nick                   string // all protocols
-    NickFormatter          string // mattermost, slack
-    NickServNick           string // IRC
-    NickServPassword       string // IRC
-    NicksPerRow            int    // mattermost, slack
-    NoTLS                  bool   // mattermost
-    Password               string // IRC,mattermost,XMPP,unreal
-    PrefixMessagesWithNick bool   // mattemost, slack
-    Protocol               string //all protocols
-    MessageQueue           int    // IRC, size of message queue for flood control
-    MessageDelay           int    // IRC, time in millisecond to wait between messages
-    RemoteNickFormat       string // all protocols
-    Server                 string // IRC,mattermost,XMPP,discord,unreal
+	AuthCode               string // steam
+	BindAddress            string // mattermost, slack // DEPRECATED
+	Buffer                 int    // api
+	Charset                string // irc
+	EditSuffix             string // mattermost, slack, discord, telegram, gitter
+	EditDisable            bool   // mattermost, slack, discord, telegram, gitter
+	IconURL                string // mattermost, slack
+	IgnoreNicks            string // all protocols
+	IgnoreMessages         string // all protocols
+	Jid                    string // xmpp
+	Login                  string // mattermost, matrix
+	Muc                    string // xmpp
+	Name                   string // all protocols
+	Nick                   string // all protocols
+	NickFormatter          string // mattermost, slack
+	NickServNick           string // IRC
+	NickServUsername       string // IRC
+	NickServPassword       string // IRC
+	NicksPerRow            int    // mattermost, slack
+	NoHomeServerSuffix     bool   // matrix
+	NoTLS                  bool   // mattermost
+	Password               string // IRC,mattermost,XMPP,matrix,unreal
+	PrefixMessagesWithNick bool   // mattemost, slack
+	Protocol               string //all protocols
+	MessageQueue           int    // IRC, size of message queue for flood control
+	MessageDelay           int    // IRC, time in millisecond to wait between messages
+	MessageLength          int    // IRC, max length of a message allowed
+	MessageFormat          string // telegram
+	RemoteNickFormat       string // all protocols
+	Server                 string // IRC,mattermost,XMPP,discord,unreal
     Sid                    string // unreal
-    ShowJoinPart           bool   // all protocols
-    SkipTLSVerify          bool   // IRC, mattermost
-    Team                   string // mattermost
-    Token                  string // gitter, slack, discord
-    URL                    string // mattermost, slack
-    UseAPI                 bool   // mattermost, slack
-    UseSASL                bool   // IRC
-    UseTLS                 bool   // IRC
+	ShowJoinPart           bool   // all protocols
+	ShowEmbeds             bool   // discord
+	SkipTLSVerify          bool   // IRC, mattermost
+	StripNick              bool   // all protocols
+	Team                   string // mattermost
+	Token                  string // gitter, slack, discord, api
+	URL                    string // mattermost, slack // DEPRECATED
+	UseAPI                 bool   // mattermost, slack
+	UseSASL                bool   // IRC
+	UseTLS                 bool   // IRC
+	UseFirstName           bool   // telegram
+	UseUserName            bool   // discord
+	UseInsecureURL         bool   // telegram
+	WebhookBindAddress     string // mattermost, slack
+	WebhookURL             string // mattermost, slack
+	WebhookUse             string // mattermost, slack, discord
+}
+
+type ChannelOptions struct {
+	Key        string // irc
+	WebhookURL string // discord
 }
 
 type Bridge struct {
-    Account string
-    Channel string
+	Account     string
+	Channel     string
+	Options     ChannelOptions
+	SameChannel bool
 }
 
 type Gateway struct {
@@ -77,26 +126,51 @@ type SameChannelGateway struct {
 }
 
 type Config struct {
-    IRC                map[string]Protocol
-    Mattermost         map[string]Protocol
-    Slack              map[string]Protocol
-    Gitter             map[string]Protocol
-    Xmpp               map[string]Protocol
-    Discord            map[string]Protocol
-    Telegram           map[string]Protocol
-    Rocketchat         map[string]Protocol
+	Api                map[string]Protocol
+	IRC                map[string]Protocol
+	Mattermost         map[string]Protocol
+	Matrix             map[string]Protocol
+	Slack              map[string]Protocol
+	Steam              map[string]Protocol
+	Gitter             map[string]Protocol
+	Xmpp               map[string]Protocol
+	Discord            map[string]Protocol
+	Telegram           map[string]Protocol
+	Rocketchat         map[string]Protocol
     Unreal             map[string]Protocol
-    General            Protocol
-    Gateway            []Gateway
-    SameChannelGateway []SameChannelGateway
+	General            Protocol
+	Gateway            []Gateway
+	SameChannelGateway []SameChannelGateway
 }
 
 func NewConfig(cfgfile string) *Config {
-    var cfg Config
-    if _, err := toml.DecodeFile(cfgfile, &cfg); err != nil {
-        log.Fatal(err)
-    }
-    return &cfg
+	var cfg Config
+	if _, err := toml.DecodeFile(cfgfile, &cfg); err != nil {
+		log.Fatal(err)
+	}
+	fail := false
+	for k, v := range cfg.Mattermost {
+		res := Deprecated(v, "mattermost."+k)
+		if res {
+			fail = res
+		}
+	}
+	for k, v := range cfg.Slack {
+		res := Deprecated(v, "slack."+k)
+		if res {
+			fail = res
+		}
+	}
+	for k, v := range cfg.Rocketchat {
+		res := Deprecated(v, "rocketchat."+k)
+		if res {
+			fail = res
+		}
+	}
+	if fail {
+		log.Fatalf("Fix your config. Please see changelog for more information")
+	}
+	return &cfg
 }
 
 func OverrideCfgFromEnv(cfg *Config, protocol string, account string) {
@@ -145,4 +219,18 @@ func GetIconURL(msg *Message, cfg *Protocol) string {
     iconURL = strings.Replace(iconURL, "{BRIDGE}", name, -1)
     iconURL = strings.Replace(iconURL, "{PROTOCOL}", protocol, -1)
     return iconURL
+}
+
+func Deprecated(cfg Protocol, account string) bool {
+	if cfg.BindAddress != "" {
+		log.Printf("ERROR: %s BindAddress is deprecated, you need to change it to WebhookBindAddress.", account)
+	} else if cfg.URL != "" {
+		log.Printf("ERROR: %s URL is deprecated, you need to change it to WebhookURL.", account)
+	} else if cfg.UseAPI {
+		log.Printf("ERROR: %s UseAPI is deprecated, it's enabled by default, please remove it from your config file.", account)
+	} else {
+		return false
+	}
+	return true
+	//log.Fatalf("ERROR: Fix your config: %s", account)
 }

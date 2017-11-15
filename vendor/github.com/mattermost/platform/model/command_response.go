@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package model
@@ -14,10 +14,12 @@ const (
 )
 
 type CommandResponse struct {
-	ResponseType string      `json:"response_type"`
-	Text         string      `json:"text"`
-	GotoLocation string      `json:"goto_location"`
-	Attachments  interface{} `json:"attachments"`
+	ResponseType string             `json:"response_type"`
+	Text         string             `json:"text"`
+	Username     string             `json:"username"`
+	IconURL      string             `json:"icon_url"`
+	GotoLocation string             `json:"goto_location"`
+	Attachments  []*SlackAttachment `json:"attachments"`
 }
 
 func (o *CommandResponse) ToJson() string {
@@ -32,10 +34,13 @@ func (o *CommandResponse) ToJson() string {
 func CommandResponseFromJson(data io.Reader) *CommandResponse {
 	decoder := json.NewDecoder(data)
 	var o CommandResponse
-	err := decoder.Decode(&o)
-	if err == nil {
-		return &o
-	} else {
+
+	if err := decoder.Decode(&o); err != nil {
 		return nil
 	}
+
+	o.Text = ExpandAnnouncement(o.Text)
+	o.Attachments = ProcessSlackAttachments(o.Attachments)
+
+	return &o
 }

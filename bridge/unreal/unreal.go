@@ -40,17 +40,21 @@ func (b *bunreal) Connect() error {
     return nil
 }
 
-func (b *bunreal) JoinChannel(channel string) error {
-    b.s.Join(channel)
+func (b *bunreal) Disconnect() error {
+	return nil
+}
+
+func (b *bunreal) JoinChannel(channel config.ChannelInfo) error {
+    b.s.Join(channel.Name)
     return nil
 }
 
-func (b *bunreal) Send(msg config.Message) error {
+func (b *bunreal) Send(msg config.Message) (string, error) {
     flog.Debugf("Receiving %#v", msg)
     re := regexp.MustCompile(`[[:cntrl:]]`)
     text := re.ReplaceAllString(msg.Text, "")
     b.s.Send(msg.Channel, msg.Username, text, msg.Account)
-    return nil
+    return "", nil
 }
 
 func (b *bunreal) handlePrivmsg(nick string, channel string, text string) {

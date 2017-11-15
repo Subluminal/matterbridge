@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package model
@@ -10,11 +10,17 @@ import (
 )
 
 const (
-	SESSION_COOKIE_TOKEN  = "MMAUTHTOKEN"
-	SESSION_CACHE_SIZE    = 25000
-	SESSION_PROP_PLATFORM = "platform"
-	SESSION_PROP_OS       = "os"
-	SESSION_PROP_BROWSER  = "browser"
+	SESSION_COOKIE_TOKEN              = "MMAUTHTOKEN"
+	SESSION_COOKIE_USER               = "MMUSERID"
+	SESSION_CACHE_SIZE                = 35000
+	SESSION_PROP_PLATFORM             = "platform"
+	SESSION_PROP_OS                   = "os"
+	SESSION_PROP_BROWSER              = "browser"
+	SESSION_PROP_TYPE                 = "type"
+	SESSION_PROP_USER_ACCESS_TOKEN_ID = "user_access_token_id"
+	SESSION_TYPE_USER_ACCESS_TOKEN    = "UserAccessToken"
+	SESSION_ACTIVITY_TIMEOUT          = 1000 * 60 * 5 // 5 minutes
+	SESSION_USER_ACCESS_TOKEN_EXPIRY  = 100 * 365     // 100 years
 )
 
 type Session struct {
@@ -56,7 +62,9 @@ func (me *Session) PreSave() {
 		me.Id = NewId()
 	}
 
-	me.Token = NewId()
+	if me.Token == "" {
+		me.Token = NewId()
+	}
 
 	me.CreateAt = GetMillis()
 	me.LastActivityAt = me.CreateAt
@@ -111,8 +119,7 @@ func (me *Session) GetTeamByTeamId(teamId string) *TeamMember {
 }
 
 func (me *Session) IsMobileApp() bool {
-	return len(me.DeviceId) > 0 &&
-		(strings.HasPrefix(me.DeviceId, PUSH_NOTIFY_APPLE+":") || strings.HasPrefix(me.DeviceId, PUSH_NOTIFY_ANDROID+":"))
+	return len(me.DeviceId) > 0
 }
 
 func (me *Session) GetUserRoles() []string {

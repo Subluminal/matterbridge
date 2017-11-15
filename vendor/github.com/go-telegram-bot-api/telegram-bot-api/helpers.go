@@ -1,6 +1,7 @@
 package tgbotapi
 
 import (
+	"log"
 	"net/url"
 )
 
@@ -20,6 +21,7 @@ func NewMessage(chatID int64, text string) MessageConfig {
 
 // NewMessageToChannel creates a new Message that is sent to a channel
 // by username.
+//
 // username is the username of the channel, text is the message text.
 func NewMessageToChannel(username string, text string) MessageConfig {
 	return MessageConfig{
@@ -189,6 +191,37 @@ func NewVideoShare(chatID int64, fileID string) VideoConfig {
 			FileID:      fileID,
 			UseExisting: true,
 		},
+	}
+}
+
+// NewVideoNoteUpload creates a new video note uploader.
+//
+// chatID is where to send it, file is a string path to the file,
+// FileReader, or FileBytes.
+func NewVideoNoteUpload(chatID int64, length int, file interface{}) VideoNoteConfig {
+	return VideoNoteConfig{
+		BaseFile: BaseFile{
+			BaseChat:    BaseChat{ChatID: chatID},
+			File:        file,
+			UseExisting: false,
+		},
+		Length: length,
+	}
+}
+
+// NewVideoNoteShare shares an existing video.
+// You may use this to reshare an existing video without reuploading it.
+//
+// chatID is where to send it, fileID is the ID of the video
+// already uploaded.
+func NewVideoNoteShare(chatID int64, length int, fileID string) VideoNoteConfig {
+	return VideoNoteConfig{
+		BaseFile: BaseFile{
+			BaseChat:    BaseChat{ChatID: chatID},
+			FileID:      fileID,
+			UseExisting: true,
+		},
+		Length: length,
 	}
 }
 
@@ -479,9 +512,20 @@ func NewEditMessageReplyMarkup(chatID int64, messageID int, replyMarkup InlineKe
 // NewHideKeyboard hides the keyboard, with the option for being selective
 // or hiding for everyone.
 func NewHideKeyboard(selective bool) ReplyKeyboardHide {
+	log.Println("NewHideKeyboard is deprecated, please use NewRemoveKeyboard")
+
 	return ReplyKeyboardHide{
 		HideKeyboard: true,
 		Selective:    selective,
+	}
+}
+
+// NewRemoveKeyboard hides the keyboard, with the option for being selective
+// or hiding for everyone.
+func NewRemoveKeyboard(selective bool) ReplyKeyboardRemove {
+	return ReplyKeyboardRemove{
+		RemoveKeyboard: true,
+		Selective:      selective,
 	}
 }
 
@@ -595,4 +639,17 @@ func NewCallbackWithAlert(id, text string) CallbackConfig {
 		Text:            text,
 		ShowAlert:       true,
 	}
+}
+
+// NewInvoice created a new Invoice request to the user.
+func NewInvoice(chatID int64, title, description, payload, providerToken, startParameter, currency string, prices *[]LabeledPrice) InvoiceConfig {
+	return InvoiceConfig{
+		BaseChat:       BaseChat{ChatID: chatID},
+		Title:          title,
+		Description:    description,
+		Payload:        payload,
+		ProviderToken:  providerToken,
+		StartParameter: startParameter,
+		Currency:       currency,
+		Prices:         prices}
 }

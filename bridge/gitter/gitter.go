@@ -1,11 +1,11 @@
 package bgitter
 
 import (
-	"strings"
-
+	"fmt"
 	"github.com/42wim/go-gitter"
 	log "github.com/Sirupsen/logrus"
 	"github.com/Subluminal/matterbridge/bridge/config"
+    "strings"
 )
 
 type Bgitter struct {
@@ -13,6 +13,7 @@ type Bgitter struct {
 	Config  *config.Protocol
 	Remote  chan config.Message
 	Account string
+	User    *gitter.User
 	Users   []gitter.User
 	Rooms   []gitter.Room
 }
@@ -36,7 +37,7 @@ func (b *Bgitter) Connect() error {
 	var err error
 	flog.Info("Connecting")
 	b.c = gitter.New(b.Config.Token)
-	_, err = b.c.GetUser()
+	b.User, err = b.c.GetUser()
 	if err != nil {
 		flog.Debugf("%#v", err)
 		return err
@@ -46,12 +47,21 @@ func (b *Bgitter) Connect() error {
 	return nil
 }
 
-func (b *Bgitter) JoinChannel(channel string) error {
-	room := channel
-	roomID := b.getRoomID(room)
-	if roomID == "" {
-		return nil
+func (b *Bgitter) Disconnect() error {
+	return nil
+
+}
+
+func (b *Bgitter) JoinChannel(channel config.ChannelInfo) error {
+	roomID, err := b.c.GetRoomId(channel.Name)
+	if err != nil {
+		return fmt.Errorf("Could not find roomID for %v. Please create the room on gitter.im", channel.Name)
 	}
+	room, err := b.c.GetRoom(roomID)
+	if err != nil {
+		return err
+	}
+	b.Rooms = append(b.Rooms, *room)
 	user, err := b.c.GetUser()
 	if err != nil {
 		return err
@@ -69,29 +79,57 @@ func (b *Bgitter) JoinChannel(channel string) error {
 		for event := range stream.Event {
 			switch ev := event.Data.(type) {
 			case *gitter.MessageReceived:
-				// check for ZWSP to see if it's not an echo
-				if !strings.HasSuffix(ev.Message.Text, "​") {
+				if ev.Message.From.ID != b.User.ID {
 					flog.Debugf("Sending message from %s on %s to gateway", ev.Message.From.Username, b.Account)
-					b.Remote <- config.Message{Username: ev.Message.From.Username, Text: ev.Message.Text, Channel: room,
-						Account: b.Account, Avatar: b.getAvatar(ev.Message.From.Username)}
+					rmsg := config.Message{Username: ev.Message.From.Username, Text: ev.Message.Text, Channel: room,
+						Account: b.Account, Avatar: b.getAvatar(ev.Message.From.Username), UserID: ev.Message.From.ID,
+						ID: ev.Message.ID}
+					if strings.HasPrefix(ev.Message.Text, "@"+ev.Message.From.Username) {
+						rmsg.Event = config.EVENT_USER_ACTION
+						rmsg.Text = strings.Replace(rmsg.Text, "@"+ev.Message.From.Username+" ", "", -1)
+					}
+					flog.Debugf("Message is %#v", rmsg)
+					b.Remote <- rmsg
 				}
 			case *gitter.GitterConnectionClosed:
 				flog.Errorf("connection with gitter closed for room %s", room)
 			}
 		}
-	}(stream, room)
+	}(stream, room.Name)
 	return nil
 }
 
-func (b *Bgitter) Send(msg config.Message) error {
+func (b *Bgitter) Send(msg config.Message) (string, error) {
 	flog.Debugf("Receiving %#v", msg)
 	roomID := b.getRoomID(msg.Channel)
 	if roomID == "" {
 		flog.Errorf("Could not find roomID for %v", msg.Channel)
-		return nil
+		return "", nil
 	}
-	// add ZWSP because gitter echoes our own messages
-	return b.c.SendMessage(roomID, msg.Username+msg.Text+" ​")
+	if msg.Event == config.EVENT_MSG_DELETE {
+		if msg.ID == "" {
+			return "", nil
+		}
+		// gitter has no delete message api
+		_, err := b.c.UpdateMessage(roomID, msg.ID, "")
+		if err != nil {
+			return "", err
+		}
+		return "", nil
+	}
+	if msg.ID != "" {
+		flog.Debugf("updating message with id %s", msg.ID)
+		_, err := b.c.UpdateMessage(roomID, msg.ID, msg.Username+msg.Text)
+		if err != nil {
+			return "", err
+		}
+		return "", nil
+	}
+	resp, err := b.c.SendMessage(roomID, msg.Username+msg.Text)
+	if err != nil {
+		return "", err
+	}
+	return resp.ID, nil
 }
 
 func (b *Bgitter) getRoomID(channel string) string {

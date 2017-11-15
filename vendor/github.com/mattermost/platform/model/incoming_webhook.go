@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package model
@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/http"
 	"regexp"
-	"strings"
 )
 
 const (
@@ -28,13 +28,13 @@ type IncomingWebhook struct {
 }
 
 type IncomingWebhookRequest struct {
-	Text        string          `json:"text"`
-	Username    string          `json:"username"`
-	IconURL     string          `json:"icon_url"`
-	ChannelName string          `json:"channel"`
-	Props       StringInterface `json:"props"`
-	Attachments interface{}     `json:"attachments"`
-	Type        string          `json:"type"`
+	Text        string             `json:"text"`
+	Username    string             `json:"username"`
+	IconURL     string             `json:"icon_url"`
+	ChannelName string             `json:"channel"`
+	Props       StringInterface    `json:"props"`
+	Attachments []*SlackAttachment `json:"attachments"`
+	Type        string             `json:"type"`
 }
 
 func (o *IncomingWebhook) ToJson() string {
@@ -80,35 +80,36 @@ func IncomingWebhookListFromJson(data io.Reader) []*IncomingWebhook {
 func (o *IncomingWebhook) IsValid() *AppError {
 
 	if len(o.Id) != 26 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.id.app_error", nil, "")
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.id.app_error", nil, "", http.StatusBadRequest)
+
 	}
 
 	if o.CreateAt == 0 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.create_at.app_error", nil, "id="+o.Id)
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.create_at.app_error", nil, "id="+o.Id, http.StatusBadRequest)
 	}
 
 	if o.UpdateAt == 0 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.update_at.app_error", nil, "id="+o.Id)
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.update_at.app_error", nil, "id="+o.Id, http.StatusBadRequest)
 	}
 
 	if len(o.UserId) != 26 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.user_id.app_error", nil, "")
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.user_id.app_error", nil, "", http.StatusBadRequest)
 	}
 
 	if len(o.ChannelId) != 26 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.channel_id.app_error", nil, "")
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.channel_id.app_error", nil, "", http.StatusBadRequest)
 	}
 
 	if len(o.TeamId) != 26 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.team_id.app_error", nil, "")
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.team_id.app_error", nil, "", http.StatusBadRequest)
 	}
 
 	if len(o.DisplayName) > 64 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.display_name.app_error", nil, "")
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.display_name.app_error", nil, "", http.StatusBadRequest)
 	}
 
 	if len(o.Description) > 128 {
-		return NewLocAppError("IncomingWebhook.IsValid", "model.incoming_hook.description.app_error", nil, "")
+		return NewAppError("IncomingWebhook.IsValid", "model.incoming_hook.description.app_error", nil, "", http.StatusBadRequest)
 	}
 
 	return nil
@@ -192,55 +193,6 @@ func decodeIncomingWebhookRequest(by []byte) (*IncomingWebhookRequest, error) {
 	}
 }
 
-// To mention @channel via a webhook in Slack, the message should contain
-// <!channel>, as explained at the bottom of this article:
-// https://get.slack.help/hc/en-us/articles/202009646-Making-announcements
-func expandAnnouncement(text string) string {
-	c1 := "<!channel>"
-	c2 := "@channel"
-	if strings.Contains(text, c1) {
-		return strings.Replace(text, c1, c2, -1)
-	}
-	return text
-}
-
-// Expand announcements in incoming webhooks from Slack. Those announcements
-// can be found in the text attribute, or in the pretext, text, title and value
-// attributes of the attachment structure. The Slack attachment structure is
-// documented here: https://api.slack.com/docs/attachments
-func expandAnnouncements(i *IncomingWebhookRequest) {
-	i.Text = expandAnnouncement(i.Text)
-
-	if i.Attachments != nil {
-		attachments := i.Attachments.([]interface{})
-		for _, attachment := range attachments {
-			a := attachment.(map[string]interface{})
-
-			if a["pretext"] != nil {
-				a["pretext"] = expandAnnouncement(a["pretext"].(string))
-			}
-
-			if a["text"] != nil {
-				a["text"] = expandAnnouncement(a["text"].(string))
-			}
-
-			if a["title"] != nil {
-				a["title"] = expandAnnouncement(a["title"].(string))
-			}
-
-			if a["fields"] != nil {
-				fields := a["fields"].([]interface{})
-				for _, field := range fields {
-					f := field.(map[string]interface{})
-					if f["value"] != nil {
-						f["value"] = expandAnnouncement(f["value"].(string))
-					}
-				}
-			}
-		}
-	}
-}
-
 func IncomingWebhookRequestFromJson(data io.Reader) *IncomingWebhookRequest {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(data)
@@ -256,7 +208,8 @@ func IncomingWebhookRequestFromJson(data io.Reader) *IncomingWebhookRequest {
 		}
 	}
 
-	expandAnnouncements(o)
+	o.Text = ExpandAnnouncement(o.Text)
+	o.Attachments = ProcessSlackAttachments(o.Attachments)
 
 	return o
 }

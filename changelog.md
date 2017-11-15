@@ -1,10 +1,345 @@
-# v0.9.1-dev
+# v1.3.1
+## New features
+* Support mattermost 4.3.0 and every other 4.x as api4 should be stable (mattermost)
+## Bugfix
+* Use bot username if specified (slack). Closes #273
+
+# v1.3.0
+## New features
+* Relay slack_attachments from mattermost to slack (slack). Closes #260
+* Add support for quoting previous message when replying (telegram). #237
+* Add support for Quakenet auth (irc). Closes #263
+* Download files (max size 1MB) from slack and reupload to mattermost (slack/mattermost). Closes #255
+
+## Enhancements
+* Backoff for 60 seconds when reconnecting too fast (irc) #267
+* Use override username if specified (mattermost). #260
+
+## Bugfix
+* Try to not forward slack unfurls. Closes #266
+
+# v1.2.0
+## Breaking changes
+* If you're running a discord bridge, update to this release before 16 october otherwise
+it will stop working. (see https://discordapp.com/developers/docs/reference)
+
+## New features
+* general: Add delete support. (actually delete the messages on bridges that support it)
+    (mattermost,discord,gitter,slack,telegram)
+
+## Bugfix
+* Do not break messages on newline (slack). Closes #258 
+* Update telegram library
+* Update discord library (supports v6 API now). Old API is deprecated on 16 October
+
+# v1.1.2
+## New features
+* general: also build darwin binaries
+* mattermost: add support for mattermost 4.2.x
+
+## Bugfix 
+* mattermost: Send images when text is empty regression. (mattermost). Closes #254
+* slack: also send the first messsage after connect. #252
+
+# v1.1.1
+## Bugfix
+* mattermost: fix public links
+
+# v1.1.0
+## New features
+* general: Add better editing support. (actually edit the messages on bridges that support it)
+	(mattermost,discord,gitter,slack,telegram)
+* mattermost: use API v4 (removes support for mattermost < 3.8)
+* mattermost: add support for personal access tokens (since mattermost 4.1)
+	Use ```Token="yourtoken"``` in mattermost config
+	See https://docs.mattermost.com/developer/personal-access-tokens.html for more info
+* matrix: Relay notices (matrix). Closes #243
+* irc: Add a charset option. Closes #247
+
+## Bugfix
+* slack: Handle leave/join events (slack). Closes #246
+* slack: Replace mentions from other bridges. (slack). Closes #233
+* gitter: remove ZWSP after messages
+
+# v1.0.1
+## New features
+* mattermost: add support for mattermost 4.1.x
+* discord: allow a webhookURL per channel #239
+
+# v1.0.0
+## New features
+* general: Add action support for slack,mattermost,irc,gitter,matrix,xmpp,discord. #199
+* discord: Shows the username instead of the server nickname #234
+
+# v1.0.0-rc1
+## New features
+* general: Add action support for slack,mattermost,irc,gitter,matrix,xmpp,discord. #199
+
+## Bugfix
+* general: Handle same account in multiple gateways better
+* mattermost: ignore edited messages with reactions
+* mattermost: Fix double posting of edited messages by using lru cache
+* irc: update vendor
+
+# v0.16.3
+## Bugfix
+* general: Fix in/out logic. Closes #224 
+* general: Fix message modification
+* slack: Disable message from other bots when using webhooks (slack)
+* mattermost: Return better error messages on mattermost connect
+
+# v0.16.2
+## New features
+* general: binary builds against latest commit are now available on https://bintray.com/Subluminal/nightly/Matterbridge/_latestVersion
+
+## Bugfix
+* slack: fix loop introduced by relaying message of other bots #219
+* slack: Suppress parent message when child message is received #218
+* mattermost: fix regression when using webhookurl and webhookbindaddress #221
+
+# v0.16.1
+## New features
+* slack: also relay messages of other bots #213
+* mattermost: show also links if public links have not been enabled.
+
+## Bugfix
+* mattermost, slack: fix connecting logic #216
+
+# v0.16.0
+## Breaking Changes
+* URL,UseAPI,BindAddress is deprecated. Your config has to be updated.
+  * URL => WebhookURL
+  * BindAddress => WebhookBindAddress
+  * UseAPI => removed 
+  This change allows you to specify a WebhookURL and a token (slack,discord), so that
+  messages will be sent with the webhook, but received via the token (API)
+  If you have not specified WebhookURL and WebhookBindAddress the API (login or token) 
+  will be used automatically. (no need for UseAPI)
+
+## New features
+* mattermost: add support for mattermost 4.0
+* steam: New protocol support added (http://store.steampowered.com/)
+* discord: Support for embedded messages (sent by other bots)
+  Shows title, description and URL of embedded messages (sent by other bots)
+  To enable add ```ShowEmbeds=true``` to your discord config 
+* discord: ```WebhookURL``` posting support added (thanks @saury07) #204
+  Discord API does not allow to change the name of the user posting, but webhooks does.
+
+## Changes
+* general: all :emoji: will be converted to unicode, providing consistent emojis across all bridges
+* telegram: Add ```UseInsecureURL``` option for telegram (default false)
+  WARNING! If enabled this will relay GIF/stickers/documents and other attachments as URLs
+  Those URLs will contain your bot-token. This may not be what you want.
+  For now there is no secure way to relay GIF/stickers/documents without seeing your token.
+
+## Bugfix
+* irc: detect charset and try to convert it to utf-8 before sending it to other bridges. #209 #210
+* slack: Remove label from URLs (slack). #205
+* slack: Relay <>& correctly to other bridges #215
+* steam: Fix channel id bug in steam (channels are off by 0x18000000000000)
+* general: various improvements
+* general: samechannelgateway now relays messages correct again #207
+
+
+# v0.16.0-rc2
+## Breaking Changes
+* URL,UseAPI,BindAddress is deprecated. Your config has to be updated.
+  * URL => WebhookURL
+  * BindAddress => WebhookBindAddress
+  * UseAPI => removed 
+  This change allows you to specify a WebhookURL and a token (slack,discord), so that
+  messages will be sent with the webhook, but received via the token (API)
+  If you have not specified WebhookURL and WebhookBindAddress the API (login or token) 
+  will be used automatically. (no need for UseAPI)
+
+## Bugfix since rc1
+* steam: Fix channel id bug in steam (channels are off by 0x18000000000000)
+* telegram: Add UseInsecureURL option for telegram (default false)
+  WARNING! If enabled this will relay GIF/stickers/documents and other attachments as URLs
+  Those URLs will contain your bot-token. This may not be what you want.
+  For now there is no secure way to relay GIF/stickers/documents without seeing your token.
+* irc: detect charset and try to convert it to utf-8 before sending it to other bridges. #209 #210
+* general: various improvements
+
+
+# v0.16.0-rc1
+## Breaking Changes
+* URL,UseAPI,BindAddress is deprecated. Your config has to be updated.
+  * URL => WebhookURL
+  * BindAddress => WebhookBindAddress
+  * UseAPI => removed 
+  This change allows you to specify a WebhookURL and a token (slack,discord), so that
+  messages will be sent with the webhook, but received via the token (API)
+  If you have not specified WebhookURL and WebhookBindAddress the API (login or token) 
+  will be used automatically. (no need for UseAPI)
+
+## New features
+* steam: New protocol support added (http://store.steampowered.com/)
+* discord: WebhookURL posting support added (thanks @saury07) #204
+  Discord API does not allow to change the name of the user posting, but webhooks does.
+
+## Bugfix
+* general: samechannelgateway now relays messages correct again #207
+* slack: Remove label from URLs (slack). #205
+
+# v0.15.0
+## New features
+* general: add option IgnoreMessages for all protocols (see mattebridge.toml.sample)
+  Messages matching these regexp will be ignored and not sent to other bridges
+  e.g. IgnoreMessages="^~~ badword"
+* telegram: add support for sticker/video/photo/document #184
+
+## Changes
+* api: add userid to each message #200
+
+## Bugfix
+* discord: fix crash in memberupdate #198
+* mattermost: Fix incorrect behaviour of EditDisable (mattermost). Fixes #197 
+* irc: Do not relay join/part of ourselves (irc). Closes #190 
+* irc: make reconnections more robust. #153
+* gitter: update library, fixes possible crash
+
+# v0.14.0
+## New features
+* api: add token authentication
+* mattermost: add support for mattermost 3.10.0
+
+## Changes
+* api: gateway name is added in JSON messages
+* api: lowercase JSON keys
+* api: channel name isn't needed in config #195
+
+## Bugfix
+* discord: Add hashtag to channelname (when translating from id) (discord)
+* mattermost: Fix a panic. #186
+* mattermost: use teamid cache if possible. Fixes a panic
+* api: post valid json. #185
+* api: allow reuse of api in different gateways. #189
+* general: Fix utf-8 issues for {NOPINGNICK}. #193
+
+# v0.13.0
+## New features
+* irc: Limit message length. ```MessageLength=400```
+  Maximum length of message sent to irc server. If it exceeds <message clipped> will be add to the message.
+* irc: Add NOPINGNICK option. 
+  The string "{NOPINGNICK}" (case sensitive) will be replaced by the actual nick / username, but with a ZWSP inside the nick, so the irc user with the same nick won't get pinged.   
+  See https://github.com/Subluminal/matterbridge/issues/175 for more information
+
+## Bugfix
+* slack: Fix sending to different channels on same account (slack). Closes #177
+* telegram: Fix incorrect usernames being sent. Closes #181
+
+
+# v0.12.1
+## New features
+* telegram: Add UseFirstName option (telegram). Closes #144
+* matrix: Add NoHomeServerSuffix. Option to disable homeserver on username (matrix). Closes #160.
+
+## Bugfix
+* xmpp: Add Compatibility for Cisco Jabber (xmpp) (#166)
+* irc: Fix JoinChannel argument to use IRC channel key (#172)
+* discord: Fix possible crash on nil (discord)
+* discord: Replace long ids in channel metions (discord). Fixes #174
+
+# v0.12.0
+## Changes
+* general: edited messages are now being sent by default on discord/mattermost/telegram/slack. See "New Features"
+
+## New features
+* general: add support for edited messages. 
+  Add new keyword EditDisable (false/true), default false. Which means by default edited messages will be sent to other bridges.
+  Add new keyword EditSuffix , default "". You can change this eg to "(edited)", this will be appended to every edit message.
+* mattermost: support mattermost v3.9.x
+* general: Add support for HTTP{S}_PROXY env variables (#162)
+* discord: Strip custom emoji metadata (discord). Closes #148
+
+## Bugfix
+* slack: Ignore error on private channel join (slack) Fixes #150 
+* mattermost: fix crash on reconnects when server is down. Closes #163
+* irc: Relay messages starting with ! (irc). Closes #164
+
+# v0.11.0
+## New features
+* general: reusing the same account on multiple gateways now also reuses the connection.
+  This is particuarly useful for irc. See #87
+* general: the Name is now REQUIRED and needs to be UNIQUE for each gateway configuration
+* telegram:  Support edited messages (telegram). See #141
+* mattermost: Add support for showing/hiding join/leave messages from mattermost. Closes #147
+* mattermost: Reconnect on session removal/timeout (mattermost)
+* mattermost: Support mattermost v3.8.x
+* irc:  Rejoin channel when kicked (irc).
+
+## Bugfix
+* mattermost: Remove space after nick (mattermost). Closes #142
+* mattermost: Modify iconurl correctly (mattermost).
+* irc: Fix join/leave regression (irc)
+
+# v0.10.3
+## Bugfix
+* slack: Allow bot tokens for now without warning (slack). Closes #140 (fixes user_is_bot message on channel join)
+
+# v0.10.2
+## New features
+* general: gops agent added. Allows for more debugging. See #134
+* general: toml inline table support added for config file
+
+## Bugfix
+* all: vendored libs updated
+
+## Changes
+* general: add more informative messages on startup
+
+# v0.10.1
+## Bugfix
+* gitter: Fix sending messages on new channel join.
+
+# v0.10.0
+## New features
+* matrix: New protocol support added (https://matrix.org)
+* mattermost: works with mattermost release v3.7.0
+* discord: Replace role ids in mentions to role names (discord). Closes #133
+
+## Bugfix
+* mattermost: Add ReadTimeout to close lingering connections (mattermost). See #125
+* gitter: Join rooms not already joined by the bot (gitter). See #135
+* general: Fail when bridge is unable to join a channel (general)
+
+## Changes
+* telegram: Do not use HTML parsemode by default. Set ```MessageFormat="HTML"``` to use it. Closes #126
+
+# v0.9.3
+## New features
+* API: rest interface to read / post messages (see API section in matterbridge.toml.sample)
+
+## Bugfix
+* slack: fix receiving messages from private channels #118
+* slack: fix echo when using webhooks #119
+* mattermost: reconnecting should work better now
+* irc: keeps reconnecting (every 60 seconds) now after ping timeout/disconnects.
+
+# v0.9.2
+## New features
+* slack: support private channels #118
+
+## Bugfix
+* general: make ignorenicks work again #115
+* telegram: fix receiving from channels and groups #112
+* telegram: use html for username
+* telegram: use ```unknown``` as username when username is not visible.
+* irc: update vendor (fixes some crashes) #117
+* xmpp: fix tls by setting ServerName #114
+
+# v0.9.1
 ## New features
 * Rocket.Chat: New protocol support added (https://rocket.chat)
+* irc: add channel key support #27 (see matterbrige.toml.sample for example)
+* xmpp: add SkipTLSVerify #106
 
 ## Bugfix
 * general: Exit when a bridge fails to start
 * mattermost: Check errors only on first connect. Keep retrying after first connection succeeds. #95
+* telegram: fix missing username #102
+* slack: do not use API functions in webhook (slack) #110
 
 # v0.9.0
 ## New features
@@ -74,6 +409,7 @@ See matterbridge.toml.sample for an example
 # v0.6.1
 ## New features
 * Slack support added.  See matterbridge.conf.sample for more information
+
 ## Bugfix
 * Fix 100% CPU bug on incorrect closed connections
 

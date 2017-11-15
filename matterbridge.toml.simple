@@ -1,3 +1,4 @@
+#WARNING: as this file contains credentials, be sure to set correct file permissions
 [irc]
     [irc.freenode]
     Server="irc.freenode.net:6667"
@@ -5,8 +6,8 @@
 
 [mattermost]
     [mattermost.work]
-    useAPI=true
-    Server="yourmattermostserver.domain"
+    #do not prefix it wit http:// or https://
+    Server="yourmattermostserver.domain" 
     Team="yourteam"
     Login="yourlogin"
     Password="yourpass"
@@ -15,18 +16,19 @@
 [[gateway]]
 name="gateway1"
 enable=true
-    [[gateway.in]]
+    [[gateway.inout]]
     account="irc.freenode"
     channel="#testing"
 
-    [[gateway.out]]
-    account="irc.freenode"
-    channel="#testing"
-
-    [[gateway.in]]
+    [[gateway.inout]]
     account="mattermost.work"
     channel="off-topic"
     
-    [[gateway.out]]
-    account="mattermost.work"
-    channel="off-topic"
+#simpler config possible since v0.10.2
+#[[gateway]]
+#name="gateway2"
+#enable=true
+#inout = [
+#    { account="irc.freenode", channel="#testing", options={key="channelkey"}},
+#    { account="mattermost.work", channel="off-topic" },
+#]

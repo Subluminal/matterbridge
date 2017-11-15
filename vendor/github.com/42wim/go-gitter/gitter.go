@@ -127,7 +127,6 @@ func (gitter *Gitter) GetRooms() ([]Room, error) {
 
 // GetUsersInRoom returns the users in the room with the passed id
 func (gitter *Gitter) GetUsersInRoom(roomID string) ([]User, error) {
-
 	var users []User
 	response, err := gitter.get(gitter.config.apiBaseURL + "rooms/" + roomID + "/users")
 	if err != nil {
@@ -206,17 +205,43 @@ func (gitter *Gitter) GetMessage(roomID, messageID string) (*Message, error) {
 }
 
 // SendMessage sends a message to a room
-func (gitter *Gitter) SendMessage(roomID, text string) error {
+func (gitter *Gitter) SendMessage(roomID, text string) (*Message, error) {
 
 	message := Message{Text: text}
 	body, _ := json.Marshal(message)
-	_, err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
+	response, err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
 	if err != nil {
 		gitter.log(err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	err = json.Unmarshal(response, &message)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	return &message, nil
+}
+
+// UpdateMessage updates a message in a room
+func (gitter *Gitter) UpdateMessage(roomID, msgID, text string) (*Message, error) {
+
+	message := Message{Text: text}
+	body, _ := json.Marshal(message)
+	response, err := gitter.put(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages/"+msgID, body)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(response, &message)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	return &message, nil
 }
 
 // JoinRoom joins a room
@@ -257,6 +282,45 @@ func (gitter *Gitter) LeaveRoom(roomID, userID string) error {
 func (gitter *Gitter) SetDebug(debug bool, logWriter io.Writer) {
 	gitter.debug = debug
 	gitter.logWriter = logWriter
+}
+
+// SearchRooms queries the Rooms resources of gitter API
+func (gitter *Gitter) SearchRooms(room string) ([]Room, error) {
+
+	var rooms struct {
+		Results []Room `json:"results"`
+	}
+
+	response, err := gitter.get(gitter.config.apiBaseURL + "rooms?q=" + room)
+
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(response, &rooms)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+	return rooms.Results, nil
+}
+
+// GetRoomId returns the room ID of a given URI
+func (gitter *Gitter) GetRoomId(uri string) (string, error) {
+
+	rooms, err := gitter.SearchRooms(uri)
+	if err != nil {
+		gitter.log(err)
+		return "", err
+	}
+
+	for _, element := range rooms {
+		if element.URI == uri {
+			return element.ID, nil
+		}
+	}
+	return "", APIError{What: "Room not found."}
 }
 
 // Pagination params
@@ -345,6 +409,39 @@ func (gitter *Gitter) get(url string) ([]byte, error) {
 
 func (gitter *Gitter) post(url string, body []byte) ([]byte, error) {
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Accept", "application/json")
+	r.Header.Set("Authorization", "Bearer "+gitter.config.token)
+
+	resp, err := gitter.config.client.Do(r)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
+		gitter.log(err)
+		return nil, err
+	}
+
+	result, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (gitter *Gitter) put(url string, body []byte) ([]byte, error) {
+	r, err := http.NewRequest("PUT", url, bytes.NewBuffer(body))
 	if err != nil {
 		gitter.log(err)
 		return nil, err

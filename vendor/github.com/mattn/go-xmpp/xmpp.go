@@ -404,9 +404,13 @@ func (c *Client) init(o *Options) error {
 	switch v := val.(type) {
 	case *saslSuccess:
 	case *saslFailure:
-		// v.Any is type of sub-element in failure,
-		// which gives a description of what failed.
-		return errors.New("auth failure: " + v.Any.Local)
+		errorMessage := v.Text
+		if errorMessage == "" {
+			// v.Any is type of sub-element in failure,
+			// which gives a description of what failed if there was no text element
+			errorMessage = v.Any.Local
+		}
+		return errors.New("auth failure: " + errorMessage)
 	default:
 		return errors.New("expected <success> or <failure>, got <" + name.Local + "> in " + name.Space)
 	}
@@ -602,7 +606,8 @@ func (c *Client) Recv() (stanza interface{}, err error) {
 		case *clientPresence:
 			return Presence{v.From, v.To, v.Type, v.Show, v.Status}, nil
 		case *clientIQ:
-			if bytes.Equal(v.Query, []byte(`<ping xmlns='urn:xmpp:ping'/>`)) {
+			// TODO check more strictly
+			if bytes.Equal(v.Query, []byte(`<ping xmlns='urn:xmpp:ping'/>`)) || bytes.Equal(v.Query, []byte(`<ping xmlns="urn:xmpp:ping"/>`)) {
 				err := c.SendResultPing(v.ID, v.From)
 				if err != nil {
 					return Chat{}, err
@@ -626,6 +631,11 @@ func (c *Client) SendOrg(org string) (n int, err error) {
 
 func (c *Client) SendPresence(presence Presence) (n int, err error) {
 	return fmt.Fprintf(c.conn, "<presence from='%s' to='%s'/>", xmlEscape(presence.From), xmlEscape(presence.To))
+}
+
+// SendKeepAlive sends a "whitespace keepalive" as described in chapter 4.6.1 of RFC6120.
+func (c *Client) SendKeepAlive() (n int, err error) {
+	return fmt.Fprintf(c.conn," ")
 }
 
 // SendHtml sends the message as HTML as defined by XEP-0071
@@ -699,6 +709,7 @@ type saslSuccess struct {
 type saslFailure struct {
 	XMLName xml.Name `xml:"urn:ietf:params:xml:ns:xmpp-sasl failure"`
 	Any     xml.Name `xml:",any"`
+	Text    string   `xml:"text"`
 }
 
 // RFC 3920  C.5  Resource binding name space

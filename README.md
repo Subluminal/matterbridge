@@ -1,24 +1,43 @@
 # matterbridge
+Click on one of the badges below to join the chat   
+
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg?colorB=42f4242)](https://gitter.im/Subluminal/matterbridge) [![Join the IRC chat at https://webchat.freenode.net/?channels=matterbridgechat](https://img.shields.io/badge/IRC-matterbridgechat-green.svg?colorB=42f4242)](https://webchat.freenode.net/?channels=matterbridgechat) [![Discord](https://img.shields.io/badge/discord-matterbridge-green.svg?colorB=42f4242)](https://discord.gg/AkKPtrQ) [![Matrix](https://img.shields.io/badge/matrix-matterbridge-green.svg?colorB=42f4242)](https://riot.im/app/#/room/#matterbridge:matrix.org) [![Slack](https://img.shields.io/badge/slack-matterbridgechat-green.svg?colorB=42f4242)](https://join.slack.com/matterbridgechat/shared_invite/MjEwODMxNjU1NDMwLTE0OTk2MTU3NTMtMzZkZmRiNDZhOA) [![Mattermost](https://img.shields.io/badge/mattermost-matterbridge-green.svg?colorB=42f4242)](https://framateam.org/signup_user_complete/?id=tfqm33ggop8x3qgu4boeieta6e) ![Xmpp](https://img.shields.io/badge/xmpp-matterbridge@muc.im.koderoot.net-green.svg?colorB=42f4242)
+
+[![Download stable](https://img.shields.io/github/release/Subluminal/matterbridge.svg?label=download%20stable)](https://github.com/Subluminal/matterbridge/releases/latest) [![Download dev](https://img.shields.io/bintray/v/Subluminal/nightly/Matterbridge.svg?label=download%20dev&colorB=007ec6)](https://bintray.com/Subluminal/nightly/Matterbridge/_latestVersion)
+
 ![matterbridge.gif](https://s15.postimg.org/qpjhp6y3f/matterbridge.gif)
 
-Simple bridge between mattermost, IRC, XMPP, Gitter, Slack, Discord, Telegram, Rocket.Chat and Hipchat(via xmpp).
+Simple bridge between Mattermost, IRC, XMPP, Gitter, Slack, Discord, Telegram, Rocket.Chat, Hipchat(via xmpp), Matrix and Steam.
+Has a REST API.
 
-* Relays public channel messages between multiple mattermost, IRC, XMPP, Gitter, Slack, Discord, Telegram, Rocket.Chat and Hipchat (via xmpp). Pick and mix.
-* Supports multiple channels.
-* Matterbridge can also work with private groups on your mattermost.
+# Table of Contents
+ * [Features](#features)
+ * [Requirements](#requirements)
+ * [Screenshots](https://github.com/Subluminal/matterbridge/wiki/)
+ * [Installing](#installing)
+   * [Binaries](#binaries)
+   * [Building](#building)
+ * [Configuration](#configuration)
+   * [Howto](https://github.com/Subluminal/matterbridge/wiki/How-to-create-your-config)
+   * [Examples](#examples) 
+ * [Running](#running)
+   * [Docker](#docker)
+ * [Changelog](#changelog)
+ * [FAQ](#faq)
+ * [Thanks](#thanks)
+
+# Features
+* Relays public channel messages between multiple mattermost, IRC, XMPP, Gitter, Slack, Discord, Telegram, Rocket.Chat, Hipchat (via xmpp), Matrix and Steam. 
+  Pick and mix.
+* Support private groups on your mattermost/slack.
 * Allow for bridging the same bridges, which means you can eg bridge between multiple mattermosts.
 * The bridge is now a gateway which has support multiple in and out bridges. (and supports multiple gateways).
+* Edits and delete messages across bridges that support it (mattermost,slack,discord,gitter,telegram)
+* REST API to read/post messages to bridges (WIP).
 
-Look at [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for documentation and an example.
-Look at [matterbridge.toml.simple](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.simple) for a simple example.
-
-
-## Changelog
-Since v0.7.0 the configuration has changed. More details in [changelog.md](https://github.com/Subluminal/matterbridge/blob/master/changelog.md)
-
-## Requirements
+# Requirements
 Accounts to one of the supported bridges
-* [Mattermost](https://github.com/mattermost/platform/)
+* [Mattermost](https://github.com/mattermost/platform/) 3.8.x - 3.10.x, 4.x
 * [IRC](http://www.mirc.com/servers.html)
 * [XMPP](https://jabber.org)
 * [Gitter](https://gitter.im)
@@ -27,35 +46,19 @@ Accounts to one of the supported bridges
 * [Telegram](https://telegram.org)
 * [Hipchat](https://www.hipchat.com)
 * [Rocket.chat](https://rocket.chat)
+* [Matrix](https://matrix.org)
+* [Steam](https://store.steampowered.com/)
 
-## Docker
-Create your matterbridge.toml file locally eg in ```/tmp/matterbridge.toml```
-```
-docker run -ti -v /tmp/matterbridge.toml:/matterbridge.toml Subluminal/matterbridge
-```
+# Screenshots
+See https://github.com/Subluminal/matterbridge/wiki
 
-## binaries
-Binaries can be found [here](https://github.com/Subluminal/matterbridge/releases/)
-* For use with mattermost 3.5.0+ [v0.9.0](https://github.com/Subluminal/matterircd/releases/tag/v0.9.0)
-* For use with mattermost 3.3.0 - 3.4.0 [v0.7.1](https://github.com/Subluminal/matterircd/releases/tag/v0.7.1)
-* For use with mattermost 3.0.0 - 3.2.0 [v0.5.0](https://github.com/Subluminal/matterircd/releases/tag/v0.5.0) (not maintained anymore)
+# Installing
+## Binaries
+* Latest stable release [v1.3.1](https://github.com/Subluminal/matterbridge/releases/latest)
+* Development releases (follows master) can be downloaded [here](https://dl.bintray.com/Subluminal/nightly/)  
 
-## Compatibility
-### Mattermost 
-* Matterbridge v0.9.0 works with mattermost 3.5.0+ [3.5.1 release](https://github.com/mattermost/platform/releases/tag/v3.5.1)
-* Matterbridge v0.7.1 works with mattermost 3.3.0 - 3.4.0 [3.4.0 release](https://github.com/mattermost/platform/releases/tag/v3.4.0)
-* Matterbridge v0.5.0 works with mattermost 3.0.0 - 3.2.0 [3.2.0 release](https://github.com/mattermost/platform/releases/tag/v3.2.0)
-
-
-#### Webhooks version
-* Configured incoming/outgoing [webhooks](https://www.mattermost.org/webhooks/) on your mattermost instance.
-
-#### API version
-* A dedicated user(bot) on your mattermost instance.
-
-
-## building
-Go 1.6+ is required. Make sure you have [Go](https://golang.org/doc/install) properly installed, including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH)
+## Building
+Go 1.7+ is required. Make sure you have [Go](https://golang.org/doc/install) properly installed, including setting up your [GOPATH] (https://golang.org/doc/code.html#GOPATH)
 
 ```
 cd $GOPATH
@@ -69,10 +72,73 @@ $ ls bin/
 matterbridge
 ```
 
-## running
-1) Copy the matterbridge.conf.sample to matterbridge.conf in the same directory as the matterbridge binary.  
-2) Edit matterbridge.conf with the settings for your environment. See below for more config information.  
-3) Now you can run matterbridge. 
+# Configuration
+## Basic configuration
+See [howto](https://github.com/Subluminal/matterbridge/wiki/How-to-create-your-config) for a step by step walkthrough for creating your configuration.
+
+## Advanced configuration
+* [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for documentation and an example.
+
+## Examples 
+### Bridge mattermost (off-topic) - irc (#testing)
+```
+[irc]
+    [irc.freenode]
+    Server="irc.freenode.net:6667"
+    Nick="yourbotname"
+
+[mattermost]
+    [mattermost.work]
+    Server="yourmattermostserver.tld"
+    Team="yourteam"
+    Login="yourlogin"
+    Password="yourpass"
+    PrefixMessagesWithNick=true
+    RemoteNickFormat="[{PROTOCOL}] <{NICK}> "
+
+[[gateway]]
+name="mygateway"
+enable=true
+    [[gateway.inout]]
+    account="irc.freenode"
+    channel="#testing"
+
+    [[gateway.inout]]
+    account="mattermost.work"
+    channel="off-topic"
+```
+
+### Bridge slack (#general) - discord (general)
+```
+[slack]
+[slack.test]
+Token="yourslacktoken"
+PrefixMessagesWithNick=true
+
+[discord]
+[discord.test]
+Token="yourdiscordtoken"
+Server="yourdiscordservername"
+
+[general]
+RemoteNickFormat="[{PROTOCOL}/{BRIDGE}] <{NICK}> "
+
+[[gateway]]
+    name = "mygateway"
+    enable=true
+
+    [[gateway.inout]]
+    account = "discord.test"
+    channel="general"
+
+    [[gateway.inout]]
+    account ="slack.test"
+    channel = "general"
+```
+
+# Running
+
+See [howto](https://github.com/Subluminal/matterbridge/wiki/How-to-create-your-config) for a step by step walkthrough for creating your configuration.
 
 ```
 Usage of ./matterbridge:
@@ -80,39 +146,39 @@ Usage of ./matterbridge:
         config file (default "matterbridge.toml")
   -debug
         enable debug
+  -gops
+        enable gops agent
   -version
         show version
 ```
 
-## config
-### matterbridge
-matterbridge looks for matterbridge.toml in current directory. (use -conf to specify another file)
+## Docker
+Create your matterbridge.toml file locally eg in ```/tmp/matterbridge.toml```
+```
+docker run -ti -v /tmp/matterbridge.toml:/matterbridge.toml Subluminal/matterbridge
+```
 
-Look at [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for an example.
+# Changelog
+See [changelog.md](https://github.com/Subluminal/matterbridge/blob/master/changelog.md)
 
-### mattermost
-#### webhooks version
-You'll have to configure the incoming and outgoing webhooks. 
+# FAQ
 
-* incoming webhooks
-Go to "account settings" - integrations - "incoming webhooks".  
-Choose a channel at "Add a new incoming webhook", this will create a webhook URL right below.  
-This URL should be set in the matterbridge.conf in the [mattermost] section (see above)  
+See [FAQ](https://github.com/Subluminal/matterbridge/wiki/FAQ)
 
-* outgoing webhooks
-Go to "account settings" - integrations - "outgoing webhooks".  
-Choose a channel (the same as the one from incoming webhooks) and fill in the address and port of the server matterbridge will run on.  
+Want to tip ? 
+* eth: 0xb3f9b5387c66ad6be892bcb7bbc67862f3abc16f
+* btc: 1N7cKHj5SfqBHBzDJ6kad4BzeqUBBS2zhs
 
-e.g. http://192.168.1.1:9999 (192.168.1.1:9999 is the BindAddress specified in [mattermost] section of matterbridge.conf)
-
-## FAQ
-Please look at [matterbridge.toml.sample](https://github.com/Subluminal/matterbridge/blob/master/matterbridge.toml.sample) for more information first. 
-### Mattermost doesn't show the IRC nicks
-If you're running the webhooks version, this can be fixed by either:
-* enabling "override usernames". See [mattermost documentation](http://docs.mattermost.com/developer/webhooks-incoming.html#enabling-incoming-webhooks)
-* setting ```PrefixMessagesWithNick``` to ```true``` in ```mattermost``` section of your matterbridge.toml.
-
-If you're running the plus version you'll need to:
-* setting ```PrefixMessagesWithNick``` to ```true``` in ```mattermost``` section of your matterbridge.toml.
-
-Also look at the ```RemoteNickFormat``` setting.
+# Thanks
+Matterbridge wouldn't exist without these libraries:
+* discord - https://github.com/bwmarrin/discordgo
+* echo - https://github.com/labstack/echo
+* gitter - https://github.com/sromku/go-gitter
+* gops - https://github.com/google/gops
+* irc - https://github.com/thoj/go-ircevent
+* mattermost - https://github.com/mattermost/platform
+* matrix - https://github.com/matrix-org/gomatrix
+* slack - https://github.com/nlopes/slack
+* steam - https://github.com/Philipp15b/go-steam
+* telegram - https://github.com/go-telegram-bot-api/telegram-bot-api
+* xmpp - https://github.com/mattn/go-xmpp

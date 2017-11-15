@@ -1,8 +1,15 @@
 package birc
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
+	"github.com/42wim/go-ircevent"
+	"github.com/paulrosania/go-charset/charset"
+	_ "github.com/paulrosania/go-charset/data"
+	"github.com/saintfish/chardet"
+	"io"
+	"io/ioutil"
 	"regexp"
 	"sort"
 	"strconv"
@@ -12,19 +19,19 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/Subluminal/matterbridge/bridge/config"
 	ircm "github.com/sorcix/irc"
-	"github.com/thoj/go-ircevent"
 )
 
 type Birc struct {
-	i         *irc.Connection
-	Nick      string
-	names     map[string][]string
-	Config    *config.Protocol
-	Remote    chan config.Message
-	connected chan struct{}
-	Local     chan config.Message // local queue for flood control
-	Account   string
-	Ignored   []string
+	i               *irc.Connection
+	Nick            string
+	names           map[string][]string
+	Config          *config.Protocol
+	Remote          chan config.Message
+	connected       chan struct{}
+	Local           chan config.Message // local queue for flood control
+	Account         string
+	Ignored         []string
+	FirstConnection bool
 }
 
 var flog *log.Entry
@@ -48,7 +55,10 @@ func New(cfg config.Protocol, account string, c chan config.Message) *Birc {
 	if b.Config.MessageQueue == 0 {
 		b.Config.MessageQueue = 30
 	}
-	b.Local = make(chan config.Message, b.Config.MessageQueue+10)
+	if b.Config.MessageLength == 0 {
+		b.Config.MessageLength = 400
+	}
+	b.FirstConnection = true
 	return b
 }
 
@@ -63,6 +73,7 @@ func (b *Birc) Command(msg *config.Message) string {
 }
 
 func (b *Birc) Connect() error {
+	b.Local = make(chan config.Message, b.Config.MessageQueue+10)
 	flog.Infof("Connecting %s", b.Config.Server)
 	i := irc.IRC(b.Config.Nick, b.Config.Nick)
 	if log.GetLevel() == log.DebugLevel {
@@ -73,10 +84,13 @@ func (b *Birc) Connect() error {
 	i.SASLLogin = b.Config.NickServNick
 	i.SASLPassword = b.Config.NickServPassword
 	i.TLSConfig = &tls.Config{InsecureSkipVerify: b.Config.SkipTLSVerify}
+	i.KeepAlive = time.Minute
+	i.PingFreq = time.Minute
 	if b.Config.Password != "" {
 		i.Password = b.Config.Password
 	}
 	i.AddCallback(ircm.RPL_WELCOME, b.handleNewConnection)
+	i.AddCallback(ircm.RPL_ENDOFMOTD, b.handleOtherAuth)
 	err := i.Connect(b.Config.Server)
 	if err != nil {
 		return err
@@ -89,23 +103,42 @@ func (b *Birc) Connect() error {
 		return fmt.Errorf("connection timed out")
 	}
 	i.Debug = false
+	// clear on reconnects
+	i.ClearCallback(ircm.RPL_WELCOME)
+	i.AddCallback(ircm.RPL_WELCOME, func(event *irc.Event) {
+		b.Remote <- config.Message{Username: "system", Text: "rejoin", Channel: "", Account: b.Account, Event: config.EVENT_REJOIN_CHANNELS}
+		// set our correct nick on reconnect if necessary
+		b.Nick = event.Nick
+	})
+	go i.Loop()
 	go b.doSend()
 	return nil
 }
 
-func (b *Birc) JoinChannel(channel string) error {
-	b.i.Join(channel)
+func (b *Birc) Disconnect() error {
+	//b.i.Disconnect()
+	close(b.Local)
 	return nil
 }
 
-func (b *Birc) Send(msg config.Message) error {
-	flog.Debugf("Receiving %#v", msg)
-	if msg.Account == b.Account {
-		return nil
+func (b *Birc) JoinChannel(channel config.ChannelInfo) error {
+	if channel.Options.Key != "" {
+		flog.Debugf("using key %s for channel %s", channel.Options.Key, channel.Name)
+		b.i.Join(channel.Name + " " + channel.Options.Key)
+	} else {
+		b.i.Join(channel.Name)
 	}
+	return nil
+}
+
+func (b *Birc) Send(msg config.Message) (string, error) {
+	// ignore delete messages
+	if msg.Event == config.EVENT_MSG_DELETE {
+		return "", nil
+	}
+	flog.Debugf("Receiving %#v", msg)
 	if strings.HasPrefix(msg.Text, "!") {
 		b.Command(&msg)
-		return nil
 	}
 
 	re := regexp.MustCompile(`[[:cntrl:]](\d+,|)\d+`)
@@ -113,13 +146,25 @@ func (b *Birc) Send(msg config.Message) error {
 
 	for _, u := range b.Ignored {
 		if u == strings.Split(user, "@")[1] {
-			return nil
+			return "", nil
 		}
 	}
 
+	if b.Config.Charset != "" {
+		buf := new(bytes.Buffer)
+		w, err := charset.NewWriter(b.Config.Charset, buf)
+		if err != nil {
+			flog.Errorf("charset from utf-8 conversion failed: %s", err)
+			return "", err
+		}
+		fmt.Fprintf(w, msg.Text)
+		w.Close()
+		msg.Text = buf.String()
+	}
+
 	for _, text := range strings.Split(msg.Text, "\n") {
-		if len(strings.TrimSpace(text)) == 0 {
-			continue
+		if len(text) > b.Config.MessageLength {
+			text = text[:b.Config.MessageLength] + " <message clipped>"
 		}
 		if len(b.Local) < b.Config.MessageQueue {
 			if len(b.Local) == b.Config.MessageQueue-1 {
@@ -130,19 +175,23 @@ func (b *Birc) Send(msg config.Message) error {
 			flog.Debugf("flooding, dropping message (queue at %d)", len(b.Local))
 		}
 	}
-	return nil
+	return "", nil
 }
 
 func (b *Birc) doSend() {
 	rate := time.Millisecond * time.Duration(b.Config.MessageDelay)
-	throttle := time.Tick(rate)
+	throttle := time.NewTicker(rate)
 	for msg := range b.Local {
-		<-throttle
-		nick := formatNick(msg.Username)
+		<-throttle.C
+        nick := msg.Username
 		if msg.Event == config.EVENT_EDIT {
 			nick += "/\x02Edit\x02"
 		}
-		b.i.Privmsg(msg.Channel, "["+nick+"] "+msg.Text)
+		if msg.Event == config.EVENT_USER_ACTION {
+			b.i.Action(msg.Channel, nick+msg.Text)
+		} else {
+			b.i.Privmsg(msg.Channel, nick+msg.Text)
+		}
 	}
 }
 
@@ -180,16 +229,30 @@ func (b *Birc) handleNewConnection(event *irc.Event) {
 	i.AddCallback("JOIN", b.handleJoinPart)
 	i.AddCallback("PART", b.handleJoinPart)
 	i.AddCallback("QUIT", b.handleJoinPart)
+	i.AddCallback("KICK", b.handleJoinPart)
 	i.AddCallback("*", b.handleOther)
 	// we are now fully connected
 	b.connected <- struct{}{}
 }
 
 func (b *Birc) handleJoinPart(event *irc.Event) {
-	flog.Debugf("Sending JOIN_LEAVE event from %s to gateway", b.Account)
 	channel := event.Arguments[0]
+	if event.Code == "KICK" {
+		flog.Infof("Got kicked from %s by %s", channel, event.Nick)
+		b.Remote <- config.Message{Username: "system", Text: "rejoin", Channel: channel, Account: b.Account, Event: config.EVENT_REJOIN_CHANNELS}
+		return
+	}
 	if event.Code == "QUIT" {
-		channel = ""
+		if event.Nick == b.Nick && strings.Contains(event.Raw, "Ping timeout") {
+			flog.Infof("%s reconnecting ..", b.Account)
+			b.Remote <- config.Message{Username: "system", Text: "reconnect", Channel: channel, Account: b.Account, Event: config.EVENT_FAILURE}
+			return
+		}
+	}
+	if event.Nick != b.Nick {
+		flog.Debugf("Sending JOIN_LEAVE event from %s to gateway", b.Account)
+		b.Remote <- config.Message{Username: "system", Text: event.Nick + " " + strings.ToLower(event.Code) + "s", Channel: channel, Account: b.Account, Event: config.EVENT_JOIN_LEAVE}
+		return
 	}
 	b.Remote <- config.Message{Username: channel, Text: event.Nick + " " + strings.ToLower(event.Code) + "s", Channel: channel, Account: b.Account, Event: config.EVENT_JOIN_LEAVE}
 	flog.Debugf("handle %#v", event)
@@ -212,7 +275,19 @@ func (b *Birc) handleOther(event *irc.Event) {
 	flog.Debugf("%#v", event.Raw)
 }
 
+func (b *Birc) handleOtherAuth(event *irc.Event) {
+	if strings.EqualFold(b.Config.NickServNick, "Q@CServe.quakenet.org") {
+		flog.Debugf("Authenticating %s against %s", b.Config.NickServUsername, b.Config.NickServNick)
+		b.i.Privmsg(b.Config.NickServNick, "AUTH "+b.Config.NickServUsername+" "+b.Config.NickServPassword)
+	}
+}
+
 func (b *Birc) handlePrivMsg(event *irc.Event) {
+	b.Nick = b.i.GetNick()
+	// freenode doesn't send 001 as first reply
+	if event.Code == "NOTICE" {
+		return
+	}
 	// don't forward queries to the bot
 	if event.Arguments[0] == b.Nick {
 		return
@@ -221,13 +296,15 @@ func (b *Birc) handlePrivMsg(event *irc.Event) {
 	if event.Nick == b.Nick {
 		return
 	}
+	rmsg := config.Message{Username: event.Nick, Channel: event.Arguments[0], Account: b.Account, UserID: event.User + "@" + event.Host}
 	flog.Debugf("handlePrivMsg() %s %s %#v", event.Nick, event.Message(), event)
 	msg := event.Message()
 	if event.Code == "CTCP_ACTION" {
-		msg = "*" + msg + "*"
+		//  msg = "*" + msg + "*"
+		rmsg.Event = config.EVENT_USER_ACTION
 	}
 	// strip IRC colors
-	re := regexp.MustCompile(`[[:cntrl:]](\d+,|)\d+`)
+	re := regexp.MustCompile(`[[:cntrl:]](?:\d{1,2}(?:,\d{1,2})?)?`)
 	msg = re.ReplaceAllString(msg, "")
 
 	if strings.HasPrefix(msg, "!ignore ") {
@@ -244,8 +321,35 @@ func (b *Birc) handlePrivMsg(event *irc.Event) {
 		return
 	}
 
-	flog.Debugf("IRC Sending message from %s on %s to gateway", event.Arguments[0], b.Account)
-	b.Remote <- config.Message{Username: event.Nick, Text: msg, Channel: event.Arguments[0], Account: b.Account}
+	var r io.Reader
+	var err error
+	mycharset := b.Config.Charset
+	if mycharset == "" {
+		// detect what were sending so that we convert it to utf-8
+		detector := chardet.NewTextDetector()
+		result, err := detector.DetectBest([]byte(msg))
+		if err != nil {
+			flog.Infof("detection failed for msg: %#v", msg)
+			return
+		}
+		flog.Debugf("detected %s confidence %#v", result.Charset, result.Confidence)
+		mycharset = result.Charset
+		// if we're not sure, just pick ISO-8859-1
+		if result.Confidence < 80 {
+			mycharset = "ISO-8859-1"
+		}
+	}
+	r, err = charset.NewReader(mycharset, strings.NewReader(msg))
+	if err != nil {
+		flog.Errorf("charset to utf-8 conversion failed: %s", err)
+		return
+	}
+	output, _ := ioutil.ReadAll(r)
+	msg = string(output)
+
+	flog.Debugf("Sending message from %s on %s to gateway", event.Arguments[0], b.Account)
+	rmsg.Text = msg
+	b.Remote <- rmsg
 }
 
 func (b *Birc) handleTopicWhoTime(event *irc.Event) {

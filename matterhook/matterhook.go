@@ -2,46 +2,49 @@
 package matterhook
 
 import (
-    "bytes"
-    "crypto/tls"
-    "encoding/json"
-    "fmt"
-    "github.com/gorilla/schema"
-    "io"
-    "io/ioutil"
-    "log"
-    "net"
-    "net/http"
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/schema"
+	"io"
+	"io/ioutil"
+	"log"
+	"net"
+	"net/http"
+	"time"
 )
 
 // OMessage for mattermost incoming webhook. (send to mattermost)
 type OMessage struct {
-    Channel     string      `json:"channel,omitempty"`
-    IconURL     string      `json:"icon_url,omitempty"`
-    IconEmoji   string      `json:"icon_emoji,omitempty"`
-    UserName    string      `json:"username,omitempty"`
-    Text        string      `json:"text"`
-    Attachments interface{} `json:"attachments,omitempty"`
-    Type        string      `json:"type,omitempty"`
+	Channel     string                 `json:"channel,omitempty"`
+	IconURL     string                 `json:"icon_url,omitempty"`
+	IconEmoji   string                 `json:"icon_emoji,omitempty"`
+	UserName    string                 `json:"username,omitempty"`
+	Text        string                 `json:"text"`
+	Attachments interface{}            `json:"attachments,omitempty"`
+	Type        string                 `json:"type,omitempty"`
+	Props       map[string]interface{} `json:"props"`
 }
 
 // IMessage for mattermost outgoing webhook. (received from mattermost)
 type IMessage struct {
-    BotID       string `schema:"bot_id"`
-    BotName     string `schema:"bot_name"`
-    Token       string `schema:"token"`
-    TeamID      string `schema:"team_id"`
-    TeamDomain  string `schema:"team_domain"`
-    ChannelID   string `schema:"channel_id"`
-    ChannelName string `schema:"channel_name"`
-    Timestamp   string `schema:"timestamp"`
-    UserID      string `schema:"user_id"`
-    UserName    string `schema:"user_name"`
-    PostId      string `schema:"post_id"`
-    RawText     string `schema:"raw_text"`
-    ServiceId   string `schema:"service_id"`
-    Text        string `schema:"text"`
-    TriggerWord string `schema:"trigger_word"`
+	BotID       string `schema:"bot_id"`
+	BotName     string `schema:"bot_name"`
+	Token       string `schema:"token"`
+	TeamID      string `schema:"team_id"`
+	TeamDomain  string `schema:"team_domain"`
+	ChannelID   string `schema:"channel_id"`
+	ChannelName string `schema:"channel_name"`
+	Timestamp   string `schema:"timestamp"`
+	UserID      string `schema:"user_id"`
+	UserName    string `schema:"user_name"`
+	PostId      string `schema:"post_id"`
+	RawText     string `schema:"raw_text"`
+	ServiceId   string `schema:"service_id"`
+	Text        string `schema:"text"`
+	TriggerWord string `schema:"trigger_word"`
+	FileIDs     string `schema:"file_ids"`
 }
 
 // Client for Mattermost.
@@ -80,12 +83,18 @@ func New(url string, config Config) *Client {
 
 // StartServer starts a webserver listening for incoming mattermost POSTS.
 func (c *Client) StartServer() {
-    mux := http.NewServeMux()
-    mux.Handle("/", c)
-    log.Printf("Listening on http://%v...\n", c.BindAddress)
-    if err := http.ListenAndServe(c.BindAddress, mux); err != nil {
-        log.Fatal(err)
-    }
+	mux := http.NewServeMux()
+	mux.Handle("/", c)
+	srv := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Handler:      mux,
+		Addr:         c.BindAddress,
+	}
+	log.Printf("Listening on http://%v...\n", c.BindAddress)
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // ServeHTTP implementation.
@@ -127,12 +136,11 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Receive returns an incoming message from mattermost outgoing webhooks URL.
 func (c *Client) Receive() IMessage {
-    for {
-        select {
-        case msg := <-c.In:
-            return msg
-        }
-    }
+	var msg IMessage
+	for msg := range c.In {
+		return msg
+	}
+	return msg
 }
 
 // Send sends a msg to mattermost incoming webhooks URL.
