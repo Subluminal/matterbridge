@@ -65,9 +65,9 @@ func (b *Btelegram) Send(msg config.Message) (string, error) {
 		return "", err
 	}
 
-	//if b.Config.MessageFormat == "HTML" {
-	//	msg.Text = makeHTML(msg.Text)
-	//}
+	b.Config.MessageFormat == "HTML" {
+		msg.Text = makeHTML(msg.Text)
+	}
 
 	if msg.Event == config.EVENT_MSG_DELETE {
 		if msg.ID == "" {
@@ -95,7 +95,7 @@ func (b *Btelegram) Send(msg config.Message) (string, error) {
 		return "", nil
 	}
 
-	m := tgbotapi.NewMessage(chatid, "<b>"+html.EscapeString(msg.Username)+"</b>: "+msg.Text)
+	m := tgbotapi.NewMessage(chatid, "<b>"+html.EscapeString(msg.Username)+"</b>: "+html.EscapeString(msg.Text))
 	if b.Config.MessageFormat == "HTML" {
 		m.ParseMode = tgbotapi.ModeHTML
 	}
@@ -164,23 +164,23 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
 		}
 
 		// quote the previous message
-		//if message.ReplyToMessage != nil {
-		//	usernameReply := ""
-		//	if message.ReplyToMessage.From != nil {
-		//		if b.Config.UseFirstName {
-		//			usernameReply = message.ReplyToMessage.From.FirstName
-		//		}
-		//		if usernameReply == "" {
-		//			usernameReply = message.ReplyToMessage.From.UserName
-		//			if usernameReply == "" {
-		//				usernameReply = message.ReplyToMessage.From.FirstName
-		//			}
-		//		}
-		//	}
-		//	if usernameReply == "" {
-		//		usernameReply = "unknown"
-		//	}
-		//	text = text + " (re @" + usernameReply + ":" + message.ReplyToMessage.Text + ")"
+		/* if message.ReplyToMessage != nil {
+			usernameReply := ""
+			if message.ReplyToMessage.From != nil {
+				if b.Config.UseFirstName {
+					usernameReply = message.ReplyToMessage.From.FirstName
+				}
+				if usernameReply == "" {
+					usernameReply = message.ReplyToMessage.From.UserName
+					if usernameReply == "" {
+						usernameReply = message.ReplyToMessage.From.FirstName
+					}
+				}
+			}
+			if usernameReply == "" {
+				usernameReply = "unknown"
+			}
+			text = text + " (re @" + usernameReply + ":" + message.ReplyToMessage.Text + ")" */
 		}
 
 		if text != "" {
