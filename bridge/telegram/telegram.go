@@ -65,7 +65,7 @@ func (b *Btelegram) Send(msg config.Message) (string, error) {
 		return "", err
 	}
 
-	b.Config.MessageFormat == "HTML" {
+	if b.Config.MessageFormat == "HTML" {
 		msg.Text = makeHTML(msg.Text)
 	}
 
@@ -160,11 +160,11 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
 			text = text + " " + b.getFileDirectURL(photos[len(photos)-1].FileID)
 		}
 		if message.Document != nil && b.Config.UseInsecureURL {
-			text = text + " " + message.Document.FileName + " : " + b.getFileDirectURL(message.Document.FileID)
+			text = text + " " + message.Document.FileName + ": " + b.getFileDirectURL(message.Document.FileID)
 		}
 
 		// quote the previous message
-		/* if message.ReplyToMessage != nil {
+		if message.ReplyToMessage != nil {
 			usernameReply := ""
 			if message.ReplyToMessage.From != nil {
 				if b.Config.UseFirstName {
@@ -180,7 +180,7 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
 			if usernameReply == "" {
 				usernameReply = "unknown"
 			}
-			text = text + " (re @" + usernameReply + ":" + message.ReplyToMessage.Text + ")" */
+            text = text + " (re: " + message.ReplyToMessage.Text + ")"
 		}
 
 		if text != "" {
