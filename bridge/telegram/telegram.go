@@ -95,7 +95,7 @@ func (b *Btelegram) Send(msg config.Message) (string, error) {
 		return "", nil
 	}
 
-	m := tgbotapi.NewMessage(chatid, "<b>"+html.EscapeString(msg.Username)+"</b>: "+html.EscapeString(msg.Text))
+	m := tgbotapi.NewMessage(chatid, "<b>"+html.EscapeString(msg.Username)+"</b> "+html.EscapeString(msg.Text))
 	if b.Config.MessageFormat == "HTML" {
 		m.ParseMode = tgbotapi.ModeHTML
 	}
@@ -180,7 +180,7 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
 			if usernameReply == "" {
 				usernameReply = "unknown"
 			}
-            text = text + " (re: " + message.ReplyToMessage.Text + ")"
+			text = text + " (re: " + message.ReplyToMessage.Text + ")"
 		}
 
 		if text != "" {
