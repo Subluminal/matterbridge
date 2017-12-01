@@ -65,10 +65,6 @@ func (b *Btelegram) Send(msg config.Message) (string, error) {
 		return "", err
 	}
 
-	if b.Config.MessageFormat == "HTML" {
-		msg.Text = makeHTML(msg.Text)
-	}
-
 	if msg.Event == config.EVENT_MSG_DELETE {
 		if msg.ID == "" {
 			return "", nil
@@ -95,7 +91,7 @@ func (b *Btelegram) Send(msg config.Message) (string, error) {
 		return "", nil
 	}
 
-	m := tgbotapi.NewMessage(chatid, "<b>"+html.EscapeString(msg.Username)+"</b> "+html.EscapeString(msg.Text))
+	m := tgbotapi.NewMessage(chatid, "<b>"+html.EscapeString(msg.Username)+"</b>"+html.EscapeString(msg.Text))
 	if b.Config.MessageFormat == "HTML" {
 		m.ParseMode = tgbotapi.ModeHTML
 	}
