@@ -304,7 +304,7 @@ func (b *Birc) handlePrivMsg(event *irc.Event) {
 		rmsg.Event = config.EVENT_USER_ACTION
 	}
 	// strip IRC colors
-	re := regexp.MustCompile(`[[:cntrl:]](?:\d{1,2}(?:,\d{1,2})?)?`)
+	re := regexp.MustCompile(`\x03(?:\d{1,2}(?:,\d{1,2})?)?|[[:cntrl:]]`)
 	msg = re.ReplaceAllString(msg, "")
 
 	if strings.HasPrefix(msg, "!ignore ") {
