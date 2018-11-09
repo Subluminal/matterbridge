@@ -176,7 +176,7 @@ func (b *Btelegram) handleRecv(updates <-chan tgbotapi.Update) {
 			if usernameReply == "" {
 				usernameReply = "unknown"
 			}
-			text = text + " (re: " + message.ReplyToMessage.Text + ")"
+			text = text
 		}
 
 		if text != "" {
