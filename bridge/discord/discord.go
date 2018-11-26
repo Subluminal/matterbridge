@@ -132,6 +132,8 @@ func (b *bdiscord) Send(msg config.Message) (string, error) {
 		flog.Errorf("Could not find channelID for %v", msg.Channel)
 		return "", nil
 	}
+	var re = regexp.MustCompile(`@(here|everyone)`)
+	msg.Text := re.ReplaceAllString(msg.Text, "")
 	if msg.Event == config.EVENT_USER_ACTION {
 		msg.Text = "_" + msg.Text + "_"
 	}
